@@ -83,36 +83,65 @@ def _row_to_asset(row: sqlite3.Row) -> dict[str, Any]:
 class Database:
     """1ファイルのSQLiteを扱う。
 
-    FastAPIとElectronには依存しない。接続はスレッド間で共有するため、書き込みは
-    ロックで直列化する。
+    FastAPIとElectronには依存しない。
+
+    接続はスレッドごとに1本持つ。1本の ``sqlite3.Connection`` を複数スレッドで同時に
+    使うと、読み出しと書き込みが重なった時点で
+    ``sqlite3.InterfaceError: bad parameter or other API misuse`` になる
+    （実機で `/thumbnails` の読み出しとバックグラウンド同期の書き込みが重なって発生）。
+    WALモードは接続を分けて使う前提の仕組みなので、スレッドごとに分けるのが正しい。
     """
 
     def __init__(self, path: Path | str) -> None:
         self.path = Path(path)
-        self._connection: sqlite3.Connection | None = None
+        self._local = threading.local()
+        self._all_connections: list[sqlite3.Connection] = []
+        self._connections_lock = threading.Lock()
         self._write_lock = threading.Lock()
+        self._ready = False
 
-    @property
-    def connection(self) -> sqlite3.Connection:
-        if self._connection is None:
-            raise RuntimeError("connect() を先に呼ぶこと")
-        return self._connection
-
-    def connect(self) -> None:
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        connection = sqlite3.connect(self.path, check_same_thread=False)
+    def _new_connection(self) -> sqlite3.Connection:
+        connection = sqlite3.connect(self.path, timeout=30.0)
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA journal_mode = WAL")
         connection.execute("PRAGMA synchronous = NORMAL")
         connection.execute("PRAGMA foreign_keys = ON")
+        connection.execute("PRAGMA busy_timeout = 30000")
+        with self._connections_lock:
+            self._all_connections.append(connection)
+        return connection
+
+    @property
+    def connection(self) -> sqlite3.Connection:
+        """呼び出したスレッド専用の接続。"""
+        if not self._ready:
+            raise RuntimeError("connect() を先に呼ぶこと")
+        connection: sqlite3.Connection | None = getattr(self._local, "connection", None)
+        if connection is None:
+            connection = self._new_connection()
+            self._local.connection = connection
+        return connection
+
+    def connect(self) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        connection = self._new_connection()
         connection.executescript(SCHEMA)
         connection.commit()
-        self._connection = connection
+        self._local.connection = connection
+        self._ready = True
 
     def close(self) -> None:
-        if self._connection is not None:
-            self._connection.close()
-            self._connection = None
+        """すべてのスレッドの接続を閉じる。"""
+        with self._connections_lock:
+            connections, self._all_connections = self._all_connections, []
+        for connection in connections:
+            try:
+                connection.close()
+            except sqlite3.Error:
+                # 別のスレッドが使っていた接続は、そのスレッド側で閉じられる。
+                pass
+        self._local = threading.local()
+        self._ready = False
 
     def __enter__(self) -> Database:
         self.connect()
