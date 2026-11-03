@@ -17,6 +17,7 @@ from .naming import (
     collect_resolutions,
     is_billboard,
     is_ignored_file,
+    is_non_texture_path,
     parse_resolution,
 )
 
@@ -57,6 +58,9 @@ def _files_below(folder: Path) -> Iterator[tuple[str, Path]]:
 
 
 def _is_unmatched(rel_path: str) -> bool:
+    # Bridgeの補助フォルダはテクスチャではないので、規則外として数えない。
+    if is_non_texture_path(rel_path):
+        return False
     if is_billboard(rel_path) or parse_resolution(rel_path) is not None:
         return False
     name = rel_path.rsplit("/", 1)[-1]

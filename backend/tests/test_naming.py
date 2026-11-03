@@ -96,3 +96,59 @@ def test_is_ignored_file(name: str, expected: bool) -> None:
 
 def test_asset_types_are_the_three_scanned_roots() -> None:
     assert naming.ASSET_TYPES == ("3d", "3dplant", "surface")
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "Thumbs/1k/wlrvaf3_1K_Albedo.jpg",
+        "Thumbs/2k/wlrvaf3_2K_Normal.jpg",
+        "thumbs/4k/wlrvaf3_4K_AO.jpg",
+        "previews/wlrvaf3_Popup_3840_sp.jpg",
+        "previews/Render_Preview_Retina_sp.jpg",
+    ],
+)
+def test_bridge_helper_folders_are_not_textures(path: str) -> None:
+    assert naming.is_non_texture_path(path) is True
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "wlrvaf3_4K_Albedo.jpg",
+        "Textures/Atlas/wfypejzha_4K_Albedo.jpg",
+        "Textures/Billboard/Billboard_4K_AO.jpg",
+        "Var1/Var1_LOD0.fbx",
+    ],
+)
+def test_the_assets_own_files_are_textures(path: str) -> None:
+    assert naming.is_non_texture_path(path) is False
+
+
+def test_collect_resolutions_ignores_the_thumbs_folder() -> None:
+    """実機の構成: 本体は4Kだけで、`Thumbs/` に1K/2K/4Kの縮小画像が入る。"""
+    paths = [
+        "wlrvaf3.json",
+        "wlrvaf3_4K_Albedo.jpg",
+        "wlrvaf3_4K_Normal.jpg",
+        "wlrvaf3_Preview.png",
+        "previews/wlrvaf3_Popup_3840_sp.jpg",
+        "Thumbs/1k/wlrvaf3_1K_Albedo.jpg",
+        "Thumbs/2k/wlrvaf3_2K_Albedo.jpg",
+        "Thumbs/4k/wlrvaf3_4K_Albedo.jpg",
+    ]
+
+    assert naming.collect_resolutions(paths) == ["4K"]
+
+
+def test_collect_resolutions_ignores_thumbs_and_billboard_together() -> None:
+    """実機の3dplant: Atlasが4K、Billboardが4K、Thumbsが1K/2K/4K。"""
+    paths = [
+        "Textures/Atlas/wfypejzha_4K_Albedo.jpg",
+        "Textures/Billboard/Billboard_4K_Albedo.jpg",
+        "Thumbs/1k/wfypejzha_1K_Albedo.jpg",
+        "Thumbs/2k/wfypejzha_2K_Albedo.jpg",
+        "Var1/Var1_LOD0.fbx",
+    ]
+
+    assert naming.collect_resolutions(paths) == ["4K"]

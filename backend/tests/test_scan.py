@@ -31,7 +31,7 @@ def test_scan_skips_the_excluded_roots(downloaded: Path) -> None:
 def test_scan_records_the_relative_folder_with_forward_slashes(downloaded: Path) -> None:
     asset = by_id(scan_downloaded(downloaded).assets)["wlrvaf3"]
 
-    assert asset.rel_dir == "surface/Concrete Pavement_wlrvaf3"
+    assert asset.rel_dir == "surface/concrete_rough_wlrvaf3"
     assert asset.type == "surface"
 
 
@@ -54,13 +54,14 @@ def test_scan_collects_the_files_below_the_asset_folder(downloaded: Path) -> Non
 def test_scan_reads_the_resolutions_from_the_real_files(downloaded: Path) -> None:
     assets = by_id(scan_downloaded(downloaded).assets)
 
-    assert assets["wlrvaf3"].resolutions == ["2K", "4K"]
-    assert assets["xiwcfassc"].resolutions == ["4K", "8K"]
+    # 本体は4Kだけ。`Thumbs/` の1K/2K は数えない。
+    assert assets["wlrvaf3"].resolutions == ["4K"]
+    assert assets["xiwcfassc"].resolutions == ["4K"]
 
 
 def test_scan_excludes_billboard_from_the_resolutions(downloaded: Path) -> None:
-    # Billboardには8Kがあるが、本体のAtlasは4Kまで。
-    assert by_id(scan_downloaded(downloaded).assets)["wfypejzha"].resolutions == ["2K", "4K"]
+    # BillboardもAtlasも4K。`Thumbs/` の1K/2K は数えない。
+    assert by_id(scan_downloaded(downloaded).assets)["wfypejzha"].resolutions == ["4K"]
 
 
 def test_scan_produces_a_fingerprint(downloaded: Path) -> None:
@@ -72,7 +73,7 @@ def test_scan_produces_a_fingerprint(downloaded: Path) -> None:
 def test_the_fingerprint_changes_when_a_file_is_added(downloaded: Path, tmp_path: Path) -> None:
     before = by_id(scan_downloaded(downloaded).assets)["wlrvaf3"].fingerprint
 
-    write_file(downloaded / "surface" / "Concrete Pavement_wlrvaf3" / "wlrvaf3_8K_Albedo.jpg")
+    write_file(downloaded / "surface" / "concrete_rough_wlrvaf3" / "wlrvaf3_8K_Albedo.jpg")
     after = by_id(scan_downloaded(downloaded).assets)["wlrvaf3"].fingerprint
 
     assert before != after
@@ -81,8 +82,8 @@ def test_the_fingerprint_changes_when_a_file_is_added(downloaded: Path, tmp_path
 def test_the_fingerprint_ignores_thumbs_db(downloaded: Path) -> None:
     before = by_id(scan_downloaded(downloaded).assets)["wlrvaf3"].fingerprint
 
-    write_file(downloaded / "surface" / "Concrete Pavement_wlrvaf3" / "Thumbs.db")
-    write_file(downloaded / "surface" / "Concrete Pavement_wlrvaf3" / "desktop.ini")
+    write_file(downloaded / "surface" / "concrete_rough_wlrvaf3" / "Thumbs.db")
+    write_file(downloaded / "surface" / "concrete_rough_wlrvaf3" / "desktop.ini")
     after = by_id(scan_downloaded(downloaded).assets)["wlrvaf3"].fingerprint
 
     assert before == after
@@ -153,7 +154,7 @@ def test_scan_raises_when_downloaded_does_not_exist(tmp_path: Path) -> None:
 
 def test_scan_does_not_recurse_past_the_asset_folder(tmp_path: Path) -> None:
     downloaded = make_downloaded(tmp_path, asset_ids=["wlrvaf3"])
-    nested = downloaded / "surface" / "Concrete Pavement_wlrvaf3" / "Inner_abc"
+    nested = downloaded / "surface" / "concrete_rough_wlrvaf3" / "Inner_abc"
     write_file(nested / "abc.json", b"{}")
 
     assert sorted(by_id(scan_downloaded(downloaded).assets)) == ["wlrvaf3"]

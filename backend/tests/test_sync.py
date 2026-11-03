@@ -41,7 +41,7 @@ def test_sync_once_stores_the_metadata_from_the_manifest(db: Database, downloade
     assert asset is not None
     assert asset["name"] == "Concrete Pavement"
     assert asset["type"] == "surface"
-    assert asset["rel_dir"] == "surface/Concrete Pavement_wlrvaf3"
+    assert asset["rel_dir"] == "surface/concrete_rough_wlrvaf3"
     assert asset["categories"] == ["surface", "surface/concrete", "surface/concrete/rough"]
     assert asset["meta"]["scanArea"] == "2x2 m"
 
@@ -53,7 +53,7 @@ def test_sync_once_stores_the_resolutions_from_the_real_files(
 
     asset = db.asset("wfypejzha")
     assert asset is not None
-    assert asset["resolutions"] == ["2K", "4K"]
+    assert asset["resolutions"] == ["4K"]
 
 
 def test_sync_once_stores_a_thumbnail(db: Database, downloaded: Path) -> None:
@@ -78,7 +78,7 @@ def test_sync_once_does_not_read_the_manifest_of_an_unchanged_asset(
 
     # サイズと更新日時を変えずに中身を壊す。フィンガープリントは同じままなので、
     # JSONを読み直していれば解析に失敗する。
-    manifest = downloaded / "surface" / "Concrete Pavement_wlrvaf3" / "wlrvaf3.json"
+    manifest = downloaded / "surface" / "concrete_rough_wlrvaf3" / "wlrvaf3.json"
     stat = manifest.stat()
     manifest.write_bytes(b"!" * stat.st_size)
     os.utime(manifest, ns=(stat.st_atime_ns, stat.st_mtime_ns))
@@ -91,21 +91,21 @@ def test_sync_once_does_not_read_the_manifest_of_an_unchanged_asset(
 
 def test_sync_once_updates_a_changed_asset(db: Database, downloaded: Path) -> None:
     sync_once(db, downloaded)
-    write_file(downloaded / "surface" / "Concrete Pavement_wlrvaf3" / "wlrvaf3_8K_Albedo.jpg")
+    write_file(downloaded / "surface" / "concrete_rough_wlrvaf3" / "wlrvaf3_8K_Albedo.jpg")
 
     result = sync_once(db, downloaded)
 
     assert (result.added, result.updated) == (0, 1)
     asset = db.asset("wlrvaf3")
     assert asset is not None
-    assert asset["resolutions"] == ["2K", "4K", "8K"]
+    assert asset["resolutions"] == ["4K", "8K"]
 
 
 def test_sync_once_removes_an_asset_that_is_gone(db: Database, downloaded: Path) -> None:
     import shutil
 
     sync_once(db, downloaded)
-    shutil.rmtree(downloaded / "surface" / "Concrete Pavement_wlrvaf3")
+    shutil.rmtree(downloaded / "surface" / "concrete_rough_wlrvaf3")
 
     result = sync_once(db, downloaded)
 
@@ -139,7 +139,7 @@ def test_sync_once_reports_a_broken_manifest(db: Database, tmp_path: Path) -> No
 def test_sync_once_keeps_the_other_assets_when_one_manifest_is_broken(
     db: Database, downloaded: Path
 ) -> None:
-    (downloaded / "surface" / "Concrete Pavement_wlrvaf3" / "wlrvaf3.json").write_text(
+    (downloaded / "surface" / "concrete_rough_wlrvaf3" / "wlrvaf3.json").write_text(
         "{ broken", encoding="utf-8"
     )
 

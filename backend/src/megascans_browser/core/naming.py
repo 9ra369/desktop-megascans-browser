@@ -18,6 +18,13 @@ IGNORED_FILE_NAMES = frozenset({"thumbs.db", "desktop.ini"})
 #: `{id}_8K_Normal.exr` のような名前に含まれる解像度。
 _RESOLUTION_RE = re.compile(r"(?:^|_)(\d+)K(?=_|\.|$)")
 
+#: Bridgeがアセットフォルダ内に置く、アセット本体のテクスチャではないフォルダ。
+#:
+#: 実機のDownloadedで確認した構成。`Thumbs/{1k,2k,4k}/` にはBridgeの画面用の縮小画像が
+#: 入っていて、実際にダウンロードした解像度とは関係ない。これを数えると、4Kだけを
+#: 持つアセットが1K/2K/4Kを持っているように見える。`previews/` も同様に本体ではない。
+_NON_TEXTURE_DIRS = ("thumbs", "previews")
+
 
 def _file_name(path: str) -> str:
     return path.replace("\\", "/").rsplit("/", 1)[-1]
@@ -34,6 +41,12 @@ def is_billboard(path: str) -> bool:
     return "billboard" in path.replace("\\", "/").lower()
 
 
+def is_non_texture_path(path: str) -> bool:
+    """Bridgeの補助フォルダ（``Thumbs/``、``previews/``）の中のファイルか。"""
+    parts = path.replace("\\", "/").lower().split("/")[:-1]
+    return any(part in _NON_TEXTURE_DIRS for part in parts)
+
+
 def is_ignored_file(name: str) -> bool:
     return _file_name(name).lower() in IGNORED_FILE_NAMES
 
@@ -47,11 +60,14 @@ def asset_id_from_folder_name(folder_name: str) -> str | None:
 def collect_resolutions(paths: Iterable[str]) -> list[str]:
     """実ファイルのパスから持っている解像度を昇順で集計する。
 
-    Billboardのファイルは、本体より高い解像度を持つことがあるため除外する。
+    Billboardのファイルは本体より高い解像度を持つことがあるため除外する。
+    ``Thumbs/`` と ``previews/`` はBridgeの補助ファイルなので同じく除外する。
     """
     found = {
         resolution
         for path in paths
-        if not is_billboard(path) and (resolution := parse_resolution(path)) is not None
+        if not is_billboard(path)
+        and not is_non_texture_path(path)
+        and (resolution := parse_resolution(path)) is not None
     }
     return sorted(found, key=lambda value: int(value[:-1]))

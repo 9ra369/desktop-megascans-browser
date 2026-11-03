@@ -8,35 +8,51 @@ from pathlib import Path
 from helpers import load_manifest
 
 #: フィクスチャのアセットIDと、実際のフォルダに置かれるファイルの構成。
+#:
+#: 実機のDownloadedで確認した形に合わせている。本体のテクスチャは4Kだけで、
+#: `Thumbs/{1k,2k,4k}/` にはBridgeの画面用の縮小画像、`previews/` にはプレビュー画像が
+#: 入る。フォルダ名は `{カテゴリ}_{サブカテゴリ}_{id}` で、末尾が `{id}`。
 LAYOUTS: dict[str, tuple[str, str, list[str]]] = {
     "wlrvaf3": (
         "surface",
-        "Concrete Pavement_wlrvaf3",
+        "concrete_rough_wlrvaf3",
         [
-            "wlrvaf3_2K_Albedo.jpg",
-            "wlrvaf3_2K_Normal.exr",
             "wlrvaf3_4K_Albedo.jpg",
-            "wlrvaf3_4K_Normal.exr",
+            "wlrvaf3_4K_Normal.jpg",
+            "wlrvaf3_4K_Displacement.exr",
+            "previews/wlrvaf3_Popup_3840_sp.jpg",
+            "Thumbs/1k/wlrvaf3_1K_Albedo.jpg",
+            "Thumbs/2k/wlrvaf3_2K_Albedo.jpg",
+            "Thumbs/4k/wlrvaf3_4K_Albedo.jpg",
         ],
     ),
     "xiwcfassc": (
         "3d",
-        "Industrial Junkyard Storage Pallet Wood Tarp_xiwcfassc",
+        "industrial_storage_xiwcfassc",
         [
+            "xiwcfassc_4K_Albedo.jpg",
+            "xiwcfassc_4K_Normal_LOD0.jpg",
             "xiwcfassc_High.fbx",
             "xiwcfassc_LOD0.fbx",
-            "xiwcfassc_8K_Normal_LOD0.exr",
-            "xiwcfassc_4K_Albedo.jpg",
+            "previews/xiwcfassc_Thumb_HighPoly_Retina_sp.jpg",
+            "Thumbs/1k/xiwcfassc_1K_Albedo.jpg",
+            "Thumbs/2k/xiwcfassc_2K_Albedo.jpg",
+            "Thumbs/4k/xiwcfassc_4K_Albedo.jpg",
         ],
     ),
     "wfypejzha": (
         "3dplant",
-        "Dragon Tree_wfypejzha",
+        "3dplant_houseplant_wfypejzha",
         [
-            "Var1/Var1_LOD0.fbx",
             "Textures/Atlas/wfypejzha_4K_Albedo.jpg",
-            "Textures/Atlas/wfypejzha_2K_Albedo.jpg",
-            "Textures/Billboard/Billboard_8K_Albedo.jpg",
+            "Textures/Atlas/wfypejzha_4K_Normal.jpg",
+            "Textures/Billboard/Billboard_4K_Albedo.jpg",
+            "Var1/Var1_LOD0.fbx",
+            "Var2/Var2_LOD0.fbx",
+            "previews/Render_Preview_Retina_sp.jpg",
+            "Thumbs/1k/wfypejzha_1K_Albedo.jpg",
+            "Thumbs/2k/wfypejzha_2K_Albedo.jpg",
+            "Thumbs/4k/wfypejzha_4K_Albedo.jpg",
         ],
     ),
 }

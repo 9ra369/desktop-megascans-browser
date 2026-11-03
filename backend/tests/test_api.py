@@ -135,7 +135,7 @@ def test_an_asset_in_the_list_carries_what_the_grid_needs(filled: TestClient) ->
 
     assert item["name"] == "Concrete Pavement"
     assert item["type"] == "surface"
-    assert item["resolutions"] == ["2K", "4K"]
+    assert item["resolutions"] == ["4K"]
     assert item["average_color"] == "#000000"
 
 
@@ -176,8 +176,8 @@ def test_asset_detail_carries_the_metadata(filled: TestClient) -> None:
     body = filled.get("/assets/wlrvaf3").json()
 
     assert body["name"] == "Concrete Pavement"
-    assert body["rel_dir"] == "surface/Concrete Pavement_wlrvaf3"
-    assert body["resolutions"] == ["2K", "4K"]
+    assert body["rel_dir"] == "surface/concrete_rough_wlrvaf3"
+    assert body["resolutions"] == ["4K"]
     assert body["categories"] == ["surface", "surface/concrete", "surface/concrete/rough"]
     assert body["meta"]["scanArea"] == "2x2 m"
 
