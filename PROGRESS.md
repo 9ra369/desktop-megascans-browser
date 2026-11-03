@@ -52,7 +52,28 @@ CLAUDE.md の実装順にそったチェックリスト。設計の正は `docs/
 
 ## 7. 実際のDownloadedで初回同期を実行し、ログを確認する
 
-- [ ] 未着手（実機のDownloadedのパスが必要）
+- [ ] 実機のDownloadedでの初回同期は**人間の対応待ち**（パスが不明。C:/D:/E: を探したが
+      Megascansのライブラリは見つからなかった）
+- [x] 代替検証：実物のカタログ3件（計449ファイル）からDownloaded相当のフォルダを組み、
+      初回同期・差分なし・規則外ファイル・削除・検索を確認した（下の「代替検証の結果」）
+
+### 代替検証の結果
+
+| 確認したこと | 結果 |
+|---|---|
+| カタログ全449ファイルの走査 | 初回同期 `added=3`、ログ0件（全ファイルが解像度の規則に合う） |
+| surface の解像度 | `1K, 2K, 4K, 8K` |
+| 3d の解像度 | `1K, 2K, 4K, 8K` |
+| 3dplant の解像度 | `1K, 2K, 4K`（Billboardの8Kを除外できている） |
+| `atlas` / `brush` / `DHI` | 走査されない |
+| `assetsData.json` | 読まない |
+| `Thumbs.db` | フィンガープリントに影響しない |
+| 2回目の同期 | `unchanged=3`、JSONを読み直さない |
+| 規則外のファイル | `解像度の規則に合わない: .../wlrvaf3_Weird_Albedo.jpg` をログに残す |
+| アセットの削除 | `removed=1`、DBから消える |
+| カテゴリの親階層 | 3アセットで9行（各3階層） |
+| 検索 | `pavement`→wlrvaf3、`dracaena`→wfypejzha、`tarp`/`junkyard`→xiwcfassc、`concrete cement`（AND）→wlrvaf3 |
+| サムネイル | 3件すべて生成 |
 
 ## 最終検証
 
