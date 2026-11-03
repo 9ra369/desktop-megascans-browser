@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
@@ -70,6 +70,20 @@ describe('PythonServer', () => {
     })
 
     await expect(server.start()).rejects.toThrow()
+  }, 120_000)
+
+  it('holds no file handle once it has stopped', async () => {
+    // stop() から戻った時点で孫プロセスまで終わっていないと、DBのファイルを
+    // 握ったままになり、Windowsではフォルダを消せない。
+    const dir = makeUserData()
+    server = new PythonServer({ userData: dir, backendDir })
+    await server.start()
+
+    await server.stop()
+    rmSync(dir, { recursive: true, force: true })
+
+    expect(existsSync(dir)).toBe(false)
+    userData = null
   }, 120_000)
 
   it('stopping a server that never started is harmless', async () => {

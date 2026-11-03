@@ -61,14 +61,16 @@ export function launchCommand(options: PythonServerOptions): {
  * Windowsでは `.venv/Scripts/python.exe` が本体のインタプリタを子として起動する
  * ため、直の子だけを止めるとサーバーが残る。
  */
-function killTree(child: ChildProcess): void {
+function killTree(child: ChildProcess): Promise<void> {
   if (process.platform === 'win32' && child.pid !== undefined) {
-    execFile('taskkill', ['/pid', String(child.pid), '/T', '/F'], () => {
+    return new Promise((resolve) => {
+      // taskkill はツリーを止めてから返るので、これを待てば孫も終わっている。
       // すでに終了していればエラーになるので、結果は見ない。
+      execFile('taskkill', ['/pid', String(child.pid), '/T', '/F'], () => resolve())
     })
-    return
   }
   child.kill()
+  return Promise.resolve()
 }
 
 /**
@@ -174,7 +176,7 @@ export class PythonServer {
     if (child === null || child.exitCode !== null) {
       return
     }
-    await new Promise<void>((resolve) => {
+    const exited = new Promise<void>((resolve) => {
       const timer = setTimeout(() => {
         child.kill('SIGKILL')
         resolve()
@@ -183,8 +185,11 @@ export class PythonServer {
         clearTimeout(timer)
         resolve()
       })
-      killTree(child)
     })
+    // ツリーの終了と直の子の終了の両方を待つ。直の子が先に消えても、DBの
+    // ファイルを握っている孫が残っていることがある。
+    await killTree(child)
+    await exited
   }
 }
 

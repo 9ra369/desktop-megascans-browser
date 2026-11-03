@@ -12,8 +12,8 @@ import { syncLabel } from './syncLabel'
 const SEARCH_DEBOUNCE_MS = 200
 /** `/sync/status` を見にいく間隔。 */
 const SYNC_POLL_MS = 700
-/** 一覧の取得件数。 */
-const PAGE_SIZE = 500
+/** 一覧の取得件数。APIの上限と同じ。これを超える分は表示しない。 */
+const PAGE_SIZE = 2000
 
 type Phase = 'connecting' | 'setup' | 'ready' | 'failed'
 
