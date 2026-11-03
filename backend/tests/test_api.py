@@ -178,7 +178,6 @@ def test_asset_detail_carries_the_metadata(filled: TestClient) -> None:
     assert body["name"] == "Concrete Pavement"
     assert body["rel_dir"] == "surface/concrete_rough_wlrvaf3"
     assert body["resolutions"] == ["4K"]
-    assert body["categories"] == ["surface", "surface/concrete", "surface/concrete/rough"]
     assert body["meta"]["scanArea"] == "2x2 m"
 
 
@@ -188,6 +187,19 @@ def test_asset_detail_does_not_carry_an_absolute_path(filled: TestClient) -> Non
 
     assert "abs_dir" not in body
     assert ":" not in body["rel_dir"]
+
+
+def test_asset_detail_carries_the_semantic_meta(filled: TestClient) -> None:
+    meta = filled.get("/assets/wfypejzha").json()["meta"]
+
+    assert meta["size"] == "0.27〜1.1 m"
+    assert meta["region"] == "Asia / Pakistan"
+    assert meta["environment"] == ["rural", "urban", "forest biome"]
+
+
+def test_asset_detail_does_not_carry_the_categories(filled: TestClient) -> None:
+    # カテゴリは左のツリーで絞り込む。詳細には載せない。
+    assert "categories" not in filled.get("/assets/wlrvaf3").json()
 
 
 def test_asset_detail_does_not_carry_the_fingerprint(filled: TestClient) -> None:

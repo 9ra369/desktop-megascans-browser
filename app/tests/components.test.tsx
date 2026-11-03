@@ -166,11 +166,10 @@ describe('CategoryPanel', () => {
 describe('DetailPanel', () => {
   const detail: AssetDetail = {
     ...asset(),
-    categories: ['surface', 'surface/concrete'],
     meta: { scanArea: '2x2 m', tiling_directions: ['x', 'y'] },
   }
 
-  it('shows the resolutions, the categories and the meta', () => {
+  it('shows the resolutions and the meta', () => {
     render(
       <DetailPanel
         asset={detail}
@@ -181,7 +180,6 @@ describe('DetailPanel', () => {
     )
 
     expect(screen.getByText('2K, 4K')).toBeDefined()
-    expect(screen.getByText('surface / surface/concrete')).toBeDefined()
     expect(screen.getByText('2x2 m')).toBeDefined()
     expect(screen.getByText('x, y')).toBeDefined()
   })
@@ -199,7 +197,46 @@ describe('DetailPanel', () => {
     )
 
     const terms = [...document.querySelectorAll('dt')].map((node) => node.textContent)
-    expect(terms).toEqual(['Resolutions', 'Categories', 'Folder', 'scanArea', 'tiling_directions'])
+    expect(terms).toEqual(['Resolutions', 'scanArea', 'tiling_directions'])
+  })
+
+  it('shows the size, the region and the environment from the api', () => {
+    render(
+      <DetailPanel
+        asset={{
+          ...detail,
+          meta: {
+            size: '0.27〜1.1 m',
+            region: 'Asia / Pakistan',
+            environment: ['rural', 'urban', 'forest biome'],
+          },
+        }}
+        thumbnailUrl={thumbnailUrl}
+        onOpenFolder={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    )
+
+    const terms = [...document.querySelectorAll('dt')].map((node) => node.textContent)
+    expect(terms).toEqual(['Resolutions', 'size', 'region', 'environment'])
+    expect(screen.getByText('0.27〜1.1 m')).toBeDefined()
+    expect(screen.getByText('Asia / Pakistan')).toBeDefined()
+    expect(screen.getByText('rural, urban, forest biome')).toBeDefined()
+  })
+
+  it('leaves out an item the api did not send', () => {
+    // 値がない項目は行ごと出さない。「不明」の行は作らない。
+    render(
+      <DetailPanel
+        asset={{ ...detail, meta: { region: 'Asia' } }}
+        thumbnailUrl={thumbnailUrl}
+        onOpenFolder={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    )
+
+    const terms = [...document.querySelectorAll('dt')].map((node) => node.textContent)
+    expect(terms).toEqual(['Resolutions', 'region'])
   })
 
   it('renders a billboard key if the api ever sent one', () => {

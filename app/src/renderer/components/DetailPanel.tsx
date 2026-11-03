@@ -40,10 +40,6 @@ export function DetailPanel({
       <dl>
         <dt>Resolutions</dt>
         <dd>{asset.resolutions.length > 0 ? asset.resolutions.join(', ') : '—'}</dd>
-        <dt>Categories</dt>
-        <dd>{asset.categories.join(' / ') || '—'}</dd>
-        <dt>Folder</dt>
-        <dd>{asset.rel_dir}</dd>
         {Object.entries(asset.meta).map(([key, value]) => (
           <div key={key} style={{ display: 'contents' }}>
             <dt>{key}</dt>

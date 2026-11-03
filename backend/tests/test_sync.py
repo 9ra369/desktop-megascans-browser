@@ -1,3 +1,4 @@
+import json
 import os
 import threading
 from pathlib import Path
@@ -5,7 +6,9 @@ from pathlib import Path
 import pytest
 
 from downloaded import make_asset, make_downloaded, write_file
+from helpers import load_manifest
 from megascans_browser.core.db import Database
+from megascans_browser.core.manifest import META_VERSION, META_VERSION_KEY
 from megascans_browser.core.sync import SyncService, SyncState, sync_once
 
 
@@ -42,8 +45,66 @@ def test_sync_once_stores_the_metadata_from_the_manifest(db: Database, downloade
     assert asset["name"] == "Concrete Pavement"
     assert asset["type"] == "surface"
     assert asset["rel_dir"] == "surface/concrete_rough_wlrvaf3"
-    assert asset["categories"] == ["surface", "surface/concrete", "surface/concrete/rough"]
     assert asset["meta"]["scanArea"] == "2x2 m"
+
+
+def test_sync_once_rebuilds_every_asset_when_the_meta_version_changed(
+    db: Database, downloaded: Path
+) -> None:
+    sync_once(db, downloaded)
+    db.set_meta(META_VERSION_KEY, "0")
+
+    result = sync_once(db, downloaded)
+
+    assert result.unchanged == 0
+    assert result.updated == 3
+
+
+def test_sync_once_leaves_unchanged_assets_alone_on_the_current_meta_version(
+    db: Database, downloaded: Path
+) -> None:
+    sync_once(db, downloaded)
+
+    result = sync_once(db, downloaded)
+
+    assert db.get_meta(META_VERSION_KEY) == META_VERSION
+    assert result.updated == 0
+
+
+def test_sync_once_stores_the_semantic_meta_from_the_manifest(
+    db: Database, downloaded: Path
+) -> None:
+    sync_once(db, downloaded)
+
+    asset = db.asset("wfypejzha")
+    assert asset is not None
+    assert asset["meta"]["size"] == "0.27〜1.1 m"
+    assert asset["meta"]["region"] == "Asia / Pakistan"
+    assert asset["meta"]["environment"] == ["rural", "urban", "forest biome"]
+
+
+def test_sync_once_continues_past_broken_semantic_tags(db: Database, downloaded: Path) -> None:
+    manifest = load_manifest("wfypejzha")
+    manifest["semanticTags"] |= {
+        "minSize": "x",
+        "maxSize": None,
+        "region": "",
+        "country": "undefined",
+        "environment": {},
+    }
+    folder = downloaded / "3dplant" / "3dplant_houseplant_wfypejzha"
+    (folder / "wfypejzha.json").write_text(json.dumps(manifest), encoding="utf-8")
+
+    result = sync_once(db, downloaded)
+
+    assert result.failed == 0
+    assert db.count() == 3
+    broken = db.asset("wfypejzha")
+    assert broken is not None
+    assert {"size", "region", "environment"}.isdisjoint(broken["meta"])
+    intact = db.asset("wlrvaf3")
+    assert intact is not None
+    assert intact["meta"]["region"] == "Americas / United States"
 
 
 def test_sync_once_stores_the_resolutions_from_the_real_files(

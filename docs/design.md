@@ -15,7 +15,10 @@
 - `{id}.json` の構造は確認した3タイプの形式だけを前提にする
 - `assetsData.json` は使わない。ファイル情報がほとんどなく、どのみち `{id}.json` が必要になるため
 - ポリゴン数、色空間、バリエーション、マップ種類、LODはDBに持たない
+- スキャナー、タイル可否、キャリブレーションも閲覧の判断に使わないのでDBに持たない
 - 詳細パネルには持っている解像度を表示する。Billboardの有無とLODは表示しない
+- 詳細パネルにカテゴリとフォルダは表示しない。カテゴリは左のツリー、フォルダは「Open folder」で足りる
+- 詳細パネルには補足情報としてサイズ、地域、環境も表示する。`semanticTags` から取り、表示専用で検索には使わない
 - `{id}.json` はアセット単位のメタデータにだけ使い、解像度は実ファイルの名前から取得する
 
 ## 技術スタック
@@ -185,6 +188,21 @@ JSONのファイル一覧は入手可能なファイルのカタログと見な�
 - `wfypejzha` のカタログでは8KがBillboardだけにあり、本体のAtlasは4Kまでなので、除外しないと解像度を誤表示する
 - 規則に合わないファイルは同期ログに残す
 
+## 詳細パネルの補足情報
+
+`semanticTags` から3項目を取り、`assets.meta_json` に入れる。表示専用で、`search_text` の生成と絞り込みには使わない。
+
+| 表示名 | 取得元 | `wfypejzha` の値 |
+|---|---|---|
+| size | `semanticTags.minSize` / `semanticTags.maxSize` | `0.27〜1.1 m` |
+| region | `semanticTags.region` / `semanticTags.country` | `Asia / Pakistan` |
+| environment | `semanticTags.environment` | `rural, urban, forest biome` |
+
+- トップレベルの `environment` は使わない。`biome` に文字列の `undefined` が入ることがある
+- 片方しか無ければある値だけを出す。`minSize` と `maxSize` が同じなら1つにする
+- 値が無い項目はキーごと入れない。詳細パネルは渡されたキーだけを行にするので「不明」の行は出ない
+- 空の値、文字列の `undefined`、想定と違う型はその項目だけ未設定にする。同期は止めない
+
 ## カテゴリ
 
 - `assetCategories` を使う
@@ -210,7 +228,7 @@ erDiagram
         TEXT rel_dir "Downloadedからの相対パス"
         TEXT search_text "検索用の文字列"
         TEXT average_color "平均色"
-        TEXT meta_json "scanAreaなどの追加情報"
+        TEXT meta_json "scanArea、size、region、environmentなどの追加情報"
         TEXT resolutions "2K, 4K, 8K など"
         TEXT fingerprint "差分検知用のハッシュ値"
     }
@@ -237,9 +255,11 @@ erDiagram
 - DBファイルはElectronの `userData` に置く
 - パスはDownloadedからの相対パスで保存する
 - `meta` の項目はタイプごとに異なるので、`meta_json` にまとめる
+- 補足情報も `meta_json` に入れる。表を増やさずに済み、詳細パネルは渡されたキーをそのまま行にする
 - `type` は `categories[0]` から取得する（37/37で一致）
 - `search_text` は name / id / categories / tags / assetCategories / environment / semanticTags から生成する（searchStrの語を37/37で再現）
 - DBは再生成できるキャッシュとして扱う
+- `app_meta` の `meta_version` に、`{id}.json` から取り出す内容の版を入れる。版が上がったら同期がファイルの変わっていないアセットも作り直す
 - お気に入りなどのユーザーデータを足す場合は、DBの作り直しで消えない場所に分ける
 
 ### 機能ごとに使う表

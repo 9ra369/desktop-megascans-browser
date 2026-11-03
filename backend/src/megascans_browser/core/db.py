@@ -249,18 +249,8 @@ class Database:
         ).fetchone()
         if row is None:
             return None
-        asset = _row_to_asset(row)
-        asset["categories"] = [
-            category["category_path"]
-            for category in self.connection.execute(
-                """
-                SELECT category_path FROM asset_categories
-                WHERE asset_id = ? ORDER BY category_path
-                """,
-                (asset_id,),
-            )
-        ]
-        return asset
+        # カテゴリは左のツリーで絞り込むためのもので、詳細には載せない。
+        return _row_to_asset(row)
 
     def search(
         self,

@@ -87,7 +87,6 @@ def test_replace_assets_stores_every_column(filled: Database) -> None:
     assert asset["average_color"] == "#112233"
     assert asset["resolutions"] == ["2K", "4K"]
     assert asset["meta"] == {"scanArea": "2x2 m"}
-    assert asset["categories"] == ["surface", "surface/concrete"]
 
 
 def test_asset_returns_none_for_an_unknown_id(filled: Database) -> None:
@@ -116,8 +115,12 @@ def test_replace_assets_replaces_an_existing_asset(filled: Database) -> None:
     asset = filled.asset("aaa")
     assert asset is not None
     assert asset["name"] == "Renamed Rock"
-    assert asset["categories"] == ["3d", "3d/industrial"]
     assert filled.count() == 3
+
+    rows = filled.connection.execute(
+        "SELECT category_path FROM asset_categories WHERE asset_id = 'aaa' ORDER BY category_path"
+    )
+    assert [row["category_path"] for row in rows] == ["3d", "3d/industrial"]
 
 
 def test_search_without_a_query_returns_every_asset_by_name(filled: Database) -> None:
