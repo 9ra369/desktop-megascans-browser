@@ -19,9 +19,10 @@ CLAUDE.md の実装順にそったチェックリスト。設計の正は `docs/
 
 ## 2. core：SQLiteスキーマと検索
 
-- [ ] `core/db.py`：`assets` / `asset_categories` / `thumbnails` / `app_meta`、WALモード
-- [ ] 文字検索（`LIKE`）、カテゴリ絞り込み、カテゴリツリーと件数
-- [ ] テスト
+- [x] `core/db.py`：`assets` / `asset_categories` / `thumbnails` / `app_meta`、WALモード
+- [x] 文字検索（`LIKE`）、カテゴリ絞り込み、カテゴリツリーと件数
+- [x] `core/records.py`：core内で受け渡す `AssetRecord`
+- [x] テスト
 
 ## 3. core：Downloadedの走査、差分判定、同期
 
@@ -70,6 +71,11 @@ CLAUDE.md の実装順にそったチェックリスト。設計の正は `docs/
   キーが中身なのでキーを辿る。語は小文字・重複なし・ソート済みで空白区切りにした。
 - `meta_json` から `lodDistance`、`points`、`splitSubmeshes` を落とした。設計が
   「ポリゴン数、バリエーション、LODはDBに持たない」としているため。
+- 検索語は空白で区切り、すべてを含む行だけを返す（AND）。`%` と `_` は `ESCAPE` で
+  エスケープし、検索語として扱う。
+- `resolutions` は `", "` 区切りの文字列として1列に入れた（設計のスキーマが `TEXT`）。
+- 接続は `check_same_thread=False` で共有し、書き込みは `threading.Lock` で直列化した。
+  同期がバックグラウンドスレッドで走る前提のため。
 - カタログのファイル一覧のキーはタイプごとに異なる（surface=`maps`、3d=`components`+`meshes`、
   3dplant=`maps`+`billboards`+`models`）。この組で設計の449ファイルに一致することをテストで固定した。
 
