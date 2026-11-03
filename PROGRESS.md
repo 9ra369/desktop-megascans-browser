@@ -77,12 +77,26 @@ CLAUDE.md の実装順にそったチェックリスト。設計の正は `docs/
 
 ## 最終検証
 
-- [ ] `uv run pytest`
-- [ ] `uv run ruff check .`
-- [ ] `uv run ruff format .`
-- [ ] `npm run build`（app）
-- [ ] `npx tsc --noEmit`（app）
-- [ ] サブエージェントで差分を設計書と照合
+- [x] `uv run pytest`：182 passed
+- [x] `uv run ruff check .`：All checks passed!
+- [x] `uv run ruff format --check .`：28 files already formatted
+- [x] `npm test`（app）：55 passed
+- [x] `npm run typecheck`（app）：エラーなし（renderer / main / tests の3プロジェクト）
+- [x] `npm run build`（app）：renderer と main のビルド成功
+- [x] 実際にElectronを起動して一連の動作を確認（下の「起動の確認」）
+- [x] サブエージェントで差分を設計書と照合
+
+### 起動の確認
+
+`app/` で `npx electron .` を実行して確認した。
+
+| 確認したこと | 結果 |
+|---|---|
+| ElectronがPythonサーバーを起動する | `.venv` のPythonが `--user-data <userData>` で起動 |
+| `127.0.0.1` の空きポートで待ち受ける | ポート49444 |
+| `/health` | `{"status":"ok","version":"0.1.0"}` |
+| トークンなしのAPI | `/assets` が401 |
+| ウィンドウを閉じるとPythonも止まる | Electron 0プロセス、backend 0プロセス（取り残しなし） |
 
 ## 判断の記録
 
