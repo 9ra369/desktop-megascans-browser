@@ -26,10 +26,10 @@ CLAUDE.md の実装順にそったチェックリスト。設計の正は `docs/
 
 ## 3. core：Downloadedの走査、差分判定、同期
 
-- [ ] `core/scan.py`：`Downloaded/{3d,3dplant,surface}/{folder}/` の2階層走査
-- [ ] `core/thumbnails.py`：`{id}_Preview.png` からサムネイル生成（Pillow）
-- [ ] `core/sync.py`：差分判定、同期の実行、進捗、同時実行は1つだけ
-- [ ] テスト
+- [x] `core/scan.py`：`Downloaded/{3d,3dplant,surface}/{folder}/` の2階層走査
+- [x] `core/thumbnails.py`：`{id}_Preview.png` からサムネイル生成（Pillow）
+- [x] `core/sync.py`：差分判定、同期の実行、進捗、同時実行は1つだけ
+- [x] テスト
 
 ## 4. api：FastAPIのエンドポイントと認証
 
@@ -76,6 +76,13 @@ CLAUDE.md の実装順にそったチェックリスト。設計の正は `docs/
 - `resolutions` は `", "` 区切りの文字列として1列に入れた（設計のスキーマが `TEXT`）。
 - 接続は `check_same_thread=False` で共有し、書き込みは `threading.Lock` で直列化した。
   同期がバックグラウンドスレッドで走る前提のため。
+- サムネイルの長辺は320px。グリッド1枚ぶんで、元より大きくはしない。
+- 同期ログは走査時のスキップ・規則外ファイルと、manifestの解析失敗をまとめて
+  `SyncResult.log` に入れ、上限500件にした。
+- `{id}.json` の解析に失敗したアセットはDBに入れず、他のアセットの同期は続ける。
+- 解像度の規則外として記録するのは、Billboardでなく解像度が読めず、拡張子が
+  `.abc/.fbx/.json/.mtl/.obj/.ztl` でもなく、`_Preview.png` でもないファイルだけ。
+  メッシュやプレビューは解像度を持たないのが普通なので、ログを埋めないようにした。
 - カタログのファイル一覧のキーはタイプごとに異なる（surface=`maps`、3d=`components`+`meshes`、
   3dplant=`maps`+`billboards`+`models`）。この組で設計の449ファイルに一致することをテストで固定した。
 
