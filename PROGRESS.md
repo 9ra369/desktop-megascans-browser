@@ -12,10 +12,10 @@ CLAUDE.md の実装順にそったチェックリスト。設計の正は `docs/
 
 ## 1. core：ファイル名解析、フィンガープリント、カテゴリと検索文字列の生成
 
-- [ ] `core/naming.py`：ファイル名から解像度を取得、Billboard判定、フォルダ名から `{id}` を取得
-- [ ] `core/fingerprint.py`：相対パス・サイズ・更新日時からハッシュを生成
-- [ ] `core/manifest.py`：`{id}.json` からメタデータ、カテゴリパス、`search_text` を生成
-- [ ] テスト：フィクスチャ3件の全449ファイルで解像度の解析結果がJSONの値と一致する
+- [x] `core/naming.py`：ファイル名から解像度を取得、Billboard判定、フォルダ名から `{id}` を取得
+- [x] `core/fingerprint.py`：相対パス・サイズ・更新日時からハッシュを生成
+- [x] `core/manifest.py`：`{id}.json` からメタデータ、カテゴリパス、`search_text` を生成
+- [x] テスト：フィクスチャ3件の全449ファイルで解像度の解析結果がJSONの値と一致する
 
 ## 2. core：SQLiteスキーマと検索
 
@@ -63,6 +63,15 @@ CLAUDE.md の実装順にそったチェックリスト。設計の正は `docs/
 ## 判断の記録
 
 - リモートが空だったため、統合する履歴はなし。ローカルの `main` をそのまま push する。
+- `is_billboard` は大文字小文字を区別しない。設計の表記は `Billboard` だが、実ファイルの
+  表記揺れで解像度を誤表示する方が害が大きいため。
+- `search_text` はフィールド名を語に含めない。`semanticTags` と `environment` は値だけを辿り、
+  値が入れ子の辞書（`locations` など）のときはキーを中身として扱う。`assetCategories` は
+  キーが中身なのでキーを辿る。語は小文字・重複なし・ソート済みで空白区切りにした。
+- `meta_json` から `lodDistance`、`points`、`splitSubmeshes` を落とした。設計が
+  「ポリゴン数、バリエーション、LODはDBに持たない」としているため。
+- カタログのファイル一覧のキーはタイプごとに異なる（surface=`maps`、3d=`components`+`meshes`、
+  3dplant=`maps`+`billboards`+`models`）。この組で設計の449ファイルに一致することをテストで固定した。
 
 ## 未解決
 
