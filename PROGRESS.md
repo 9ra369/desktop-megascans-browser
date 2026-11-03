@@ -175,8 +175,9 @@ CLAUDE.md の実装順にそったチェックリスト。設計の正は `docs/
 - グリッドは一度に最大2000件（APIの上限）を取得する。設計にページングの指定がないため
   追加していない。これを超える件数のライブラリでは、件数表示は正しいが一覧は2000件まで。
 - `/health` だけ認証なし。メインプロセスが接続を確かめる前にトークンを使えないため。
-- トークンは `Authorization: Bearer` のほか、クエリの `token` でも受け取る。`<img>` は
-  ヘッダーを付けられないという設計の記述に合わせた。比較は `secrets.compare_digest`。
+- トークンは `Authorization: Bearer` で受け取る。`/thumbnails/{id}` だけはクエリの
+  `token` も受け取る（`<img>` はヘッダーを付けられないという設計の記述に合わせた）。
+  比較は `secrets.compare_digest`。
 - `uvicorn` の `fd=` 渡しはWindowsで動かないため、先に `bind` したソケットを
   `uvicorn.Server.run(sockets=[...])` へ渡す。ポートを起動前に確定させるために
   ソケットを先に作る形は変えていない。
