@@ -48,7 +48,6 @@ class AssetListResponse(BaseModel):
 
 
 class AssetDetail(AssetListItem):
-    categories: list[str]
     meta: dict[str, Any]
 
 

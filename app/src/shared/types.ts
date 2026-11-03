@@ -27,7 +27,6 @@ export interface AssetListResponse {
 }
 
 export interface AssetDetail extends AssetListItem {
-  categories: string[]
   meta: Record<string, unknown>
 }
 

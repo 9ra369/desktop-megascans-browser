@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from .db import Database
-from .manifest import parse_manifest
+from .manifest import META_VERSION, META_VERSION_KEY, parse_manifest
 from .records import AssetRecord
 from .scan import ScannedAsset, scan_downloaded
 from .thumbnails import make_thumbnail
@@ -66,7 +66,9 @@ def sync_once(
     result = SyncResult(log=[*scan.skipped, *scan.unmatched][:_LOG_LIMIT])
 
     known = db.fingerprints()
-    changed = [asset for asset in scan.assets if known.get(asset.id) != asset.fingerprint]
+    # 取り出すメタデータの内容を変えたら、ファイルが同じアセットも作り直す。
+    stale = db.get_meta(META_VERSION_KEY) != META_VERSION
+    changed = [asset for asset in scan.assets if stale or known.get(asset.id) != asset.fingerprint]
     result.unchanged = len(scan.assets) - len(changed)
 
     total = len(changed)
@@ -100,6 +102,7 @@ def sync_once(
     gone = [asset_id for asset_id in known if asset_id not in found]
     db.delete_assets(gone)
     result.removed = len(gone)
+    db.set_meta(META_VERSION_KEY, META_VERSION)
     return result
 
 

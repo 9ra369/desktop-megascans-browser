@@ -11,6 +11,13 @@ from collections.abc import Iterator
 from dataclasses import dataclass, field
 from typing import Any
 
+#: 取り出すメタデータの版。``_DROPPED_META_KEYS`` など、同じ `{id}.json` から
+#: 取り出す内容を変えたら上げる。同期が既存のDBを作り直す目印に使う。
+META_VERSION = "2"
+
+#: ``META_VERSION`` を入れる ``app_meta`` のキー。
+META_VERSION_KEY = "meta_version"
+
 #: `categories[0]` と `assetCategories` のルート名の対応。
 _CATEGORY_ROOTS = {"3D asset": "3d", "3D plant": "3dplant"}
 
@@ -19,6 +26,7 @@ _CATEGORY_ROOTS = {"3D asset": "3d", "3D plant": "3dplant"}
 #: 設計の「ポリゴン数、色空間、バリエーション、マップ種類、LODはDBに持たない」と、
 #: 「詳細パネルにはBillboardの有無とLODは表示しない」に対応する。
 #: ``dimensions`` はバリエーション別の寸法なので落とす。
+#: ``scanner``、``tileable``、``calibration`` は閲覧の判断に使わないので落とす。
 _DROPPED_META_KEYS = frozenset(
     {
         "lodDistance",
@@ -26,6 +34,9 @@ _DROPPED_META_KEYS = frozenset(
         "splitSubmeshes",
         "useBillboardMaterial",
         "dimensions",
+        "scanner",
+        "tileable",
+        "calibration",
     }
 )
 

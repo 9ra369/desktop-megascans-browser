@@ -30,12 +30,18 @@ def test_parse_manifest_keeps_scan_area_in_the_meta() -> None:
     asset = parse_manifest(load_manifest("wlrvaf3"))
 
     assert asset.meta["scanArea"] == "2x2 m"
-    assert asset.meta["tileable"] is True
+    assert asset.meta["texelDensity"] == "4096 px/m"
 
 
 def test_parse_manifest_does_not_keep_lod_distance_in_the_meta() -> None:
     # 設計: ポリゴン数、色空間、バリエーション、マップ種類、LODはDBに持たない
     assert "lodDistance" not in parse_manifest(load_manifest("wfypejzha")).meta
+
+
+@pytest.mark.parametrize("key", ["scanner", "tileable", "calibration"])
+def test_parse_manifest_does_not_keep_the_unused_surface_meta(key: str) -> None:
+    # 設計: 閲覧の判断に使わないメタデータはDBに持たない
+    assert key not in parse_manifest(load_manifest("wlrvaf3")).meta
 
 
 @pytest.mark.parametrize(
