@@ -52,34 +52,78 @@ CLAUDE.md の実装順にそったチェックリスト。設計の正は `docs/
 
 ## 7. 実際のDownloadedで初回同期を実行し、ログを確認する
 
-- [ ] 実機のDownloadedでの初回同期は**人間の対応待ち**（パスが不明。C:/D:/E: を探したが
-      Megascansのライブラリは見つからなかった）
-- [x] 代替検証：実物のカタログ3件（計449ファイル）からDownloaded相当のフォルダを組み、
-      初回同期・差分なし・規則外ファイル・削除・検索を確認した（下の「代替検証の結果」）
+- [x] 実機の `Downloaded` で初回同期を実行し、ログを確認した
+      （`C:\Users\kuram\Megascans_Library\Downloaded`、ダウンロード済み4件、783MB）
+- [x] アプリ（`electron .`）から起動して、同期・サムネイル・終了まで確認した
 
-### 代替検証の結果
+### 実機の構成（走査して分かったこと）
 
-| 確認したこと | 結果 |
+| 項目 | 実機の内容 |
 |---|---|
-| カタログ全449ファイルの走査 | 初回同期 `added=3`、ログ0件（全ファイルが解像度の規則に合う） |
-| surface の解像度 | `1K, 2K, 4K, 8K` |
-| 3d の解像度 | `1K, 2K, 4K, 8K` |
-| 3dplant の解像度 | `1K, 2K, 4K`（Billboardの8Kを除外できている） |
-| `atlas` / `brush` / `DHI` | 走査されない |
-| `assetsData.json` | 読まない |
-| `Thumbs.db` | フィンガープリントに影響しない |
-| 2回目の同期 | `unchanged=3`、JSONを読み直さない |
-| 規則外のファイル | `解像度の規則に合わない: .../wlrvaf3_Weird_Albedo.jpg` をログに残す |
-| アセットの削除 | `removed=1`、DBから消える |
-| カテゴリの親階層 | 3アセットで9行（各3階層） |
-| 検索 | `pavement`→wlrvaf3、`dracaena`→wfypejzha、`tarp`/`junkyard`→xiwcfassc、`concrete cement`（AND）→wlrvaf3 |
-| サムネイル | 3件すべて生成 |
+| Downloaded直下 | `3d`、`3dplant`、`atlas`、`brush`、`DHI`、`surface`、`assetsData.json` |
+| ダウンロード済み | 4件（3d 1、3dplant 1、surface 2）、実ファイル166件 |
+| フォルダ名 | `concrete_rough_wlrvaf3`、`industrial_storage_xiwcfassc` など `{カテゴリ}_{サブカテゴリ}_{id}` |
+| `{id}.json` | 4件すべてにある |
+| `{id}_Preview.png` | 4件すべてにある |
+| テクスチャの置き場 | surface/3dは直下、3dplantは `Textures/Atlas/`・`Textures/Billboard/` |
+| メッシュ | 3dは `{id}_High.fbx`・`{id}_LOD0..4.fbx`、3dplantは `Var1/`〜`Var8/` の `VarN_LODn.fbx` |
+| **`Thumbs/{1k,2k,4k}/`** | **設計で想定していなかったフォルダ。Bridgeの画面用の縮小画像が入る** |
+| **`previews/`** | **設計で想定していなかったフォルダ。`*_Popup_3840_sp.jpg` などのプレビュー画像** |
+| 実際の解像度 | 4件すべて4Kのみ |
+| `atlas` / `brush` | 空 |
+| `DHI` | `assetsData.json` のみ（走査しない） |
+
+### 実機で見つかって直した問題
+
+| 問題 | 内容 | 対応 |
+|---|---|---|
+| **解像度の誤表示** | `Thumbs/{1k,2k,4k}/` を数えてしまい、4Kだけを持つ4件すべてが `1K, 2K, 4K` と表示されていた | `Thumbs/` と `previews/` を解像度の集計から除外（Billboardと同じ理由） |
+| **同期ログのノイズ** | `previews/` のプレビュー画像が毎回「解像度の規則に合わない」として記録されていた | 補助フォルダは規則外として数えない。実機のログは0件になった |
+| **SQLiteの並行アクセスで500** | アプリ起動時に `/thumbnails` の読み出しと同期の書き込みが重なり `sqlite3.InterfaceError: bad parameter or other API misuse` | 接続をスレッドごとに分けた（WALは接続を分ける前提）。書き込みロックだけでは読み書きの衝突を防げていなかった |
+
+3つめは、既存の「同期中も検索できる」テストが進捗コールバックで同期を止めていて
+実際には同時アクセスが起きておらず、検出できていなかった。読み書きを150回ずつ重ねる
+回帰テスト（`tests/test_db_concurrency.py`）を追加した。
+
+テストのフォルダ構成（`tests/downloaded.py`）も実機で確認した形に差し替えた。
+
+### 修正後の初回同期
+
+```text
+=== 走査 ===
+見つかったアセット: 4
+  xiwcfassc    3d       files=29   3d/industrial_storage_xiwcfassc        解像度 = ['4K']
+  wfypejzha    3dplant  files=83   3dplant/3dplant_houseplant_wfypejzha   解像度 = ['4K']
+  vlprbbt      surface  files=27   surface/concrete_rough_vlprbbt         解像度 = ['4K']
+  wlrvaf3      surface  files=27   surface/concrete_rough_wlrvaf3         解像度 = ['4K']
+スキップ 0 件
+規則外 0 件
+
+=== 初回同期 ===
+added=4 updated=0 removed=0 unchanged=0 failed=0
+ログ 0 件
+サムネイル 4 / 4 件
+
+=== 2回目の同期 ===
+added=0 updated=0 unchanged=4
+
+=== カテゴリ ===
+  3d 1 / 3d/industrial 1 / 3d/industrial/storage 1
+  3dplant 1 / 3dplant/houseplant 1 / 3dplant/houseplant/flowerless 1
+  surface 2 / surface/concrete 2 / surface/concrete/rough 2
+
+=== 検索 ===
+  concrete -> [vlprbbt, wlrvaf3]   dracaena -> [wfypejzha]   tarp -> [xiwcfassc]
+```
+
+アプリから起動した場合も同じ4件・サムネイル4件になり、ASGIのエラーは0件、
+ウィンドウを閉じるとElectronとPythonの両方が0プロセスになることを確認した。
 
 ## 最終検証
 
-- [x] `uv run pytest`：208 passed
+- [x] `uv run pytest`：222 passed
 - [x] `uv run ruff check .`：All checks passed!
-- [x] `uv run ruff format --check .`：29 files already formatted
+- [x] `uv run ruff format --check .`：30 files already formatted
 - [x] `npm test`（app）：58 passed
 - [x] `npm run typecheck`（app）：エラーなし（renderer / main / tests の3プロジェクト）
 - [x] `npm run build`（app）：renderer と main のビルド成功
@@ -190,20 +234,32 @@ CLAUDE.md の実装順にそったチェックリスト。設計の正は `docs/
 - 同期ログは走査時のスキップ・規則外ファイルと、manifestの解析失敗をまとめて
   `SyncResult.log` に入れ、上限500件にした。
 - `{id}.json` の解析に失敗したアセットはDBに入れず、他のアセットの同期は続ける。
-- 解像度の規則外として記録するのは、Billboardでなく解像度が読めず、拡張子が
-  `.abc/.fbx/.json/.mtl/.obj/.ztl` でもなく、`_Preview.png` でもないファイルだけ。
-  メッシュやプレビューは解像度を持たないのが普通なので、ログを埋めないようにした。
+- 解像度の規則外として記録するのは、Bridgeの補助フォルダ（`Thumbs/`、`previews/`）の
+  外にあり、Billboardでなく解像度が読めず、拡張子が `.abc/.fbx/.json/.mtl/.obj/.ztl`
+  でもなく、`_Preview.png` でもないファイルだけ。メッシュやプレビューは解像度を
+  持たないのが普通なので、ログを埋めないようにした。
+- `Thumbs/{1k,2k,4k}/` と `previews/` は解像度の集計に数えない。設計には書かれていない
+  フォルダだが、実機で確認したところBridgeが画面用の縮小画像を置く場所で、実際に
+  ダウンロードした解像度とは関係なかった。数えると4Kだけのアセットが1K/2K/4Kを持って
+  いるように見える。除外の理由は設計がBillboardを除外するのと同じ（誤表示を防ぐ）。
+  フィンガープリントには含めたままにした（フォルダ内の実ファイルではあるため）。
+- SQLiteの接続はスレッドごとに持つ。1本を共有して書き込みだけロックする作りでは、
+  読み出しと書き込みが重なった時点で `sqlite3.InterfaceError` になった（実機で発生）。
+  WALは接続を分けて使う前提の仕組みなので、分けるのが設計の意図に沿う。
 - カタログのファイル一覧のキーはタイプごとに異なる（surface=`maps`、3d=`components`+`meshes`、
   3dplant=`maps`+`billboards`+`models`）。この組で設計の449ファイルに一致することをテストで固定した。
 
 ## 未解決
 
-残っているのは1件だけで、人間の対応待ち。
-
-- **実機の `Downloaded` での初回同期（実装順7）**：パスが不明。`C:` `D:` `E:` を探したが
-  Megascansのライブラリは見つからなかった。質問しない方針のため未実施。
-  代わりに実物のカタログ3件（計449ファイル）から同等の構成を作って検証した
-  （「代替検証の結果」）。実機で確認するには、アプリを起動して `Downloaded` を選び、
-  初回同期後に `userData/megascans-browser.log` と画面の同期表示を見る。
+なし。実装順1〜7はすべて完了し、実機のDownloadedでの初回同期も実行済み。
 
 認証情報が必要な項目はなし。`origin` へのpushはすべて成功している。
+
+### 残っている既知の制約
+
+- グリッドは一度に最大2000件（APIの上限）まで。設計にページングの指定がないため追加して
+  いない。実機は4件なので影響なし。
+- 画面の見た目は、この環境からElectronのウィンドウのスクリーンショットを撮れないため
+  目視では未確認。コンポーネントのテストと、アプリ起動時に `/thumbnails` が実際に
+  呼ばれていたこと（最初の実行でこのエンドポイントのエラーが出たのが、グリッドが
+  描画されてサムネイルを取りにいっていた証拠）で代替している。
