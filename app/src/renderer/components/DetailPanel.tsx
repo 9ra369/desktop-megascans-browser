@@ -1,4 +1,5 @@
 import type { AssetDetail } from '../../shared/types'
+import { Thumbnail } from './Thumbnail'
 
 interface Props {
   asset: AssetDetail
@@ -29,9 +30,12 @@ export function DetailPanel({
       <p className="muted">
         {asset.type} · {asset.id}
       </p>
-      {asset.has_thumbnail ? (
-        <img className="detail__image" src={thumbnailUrl(asset.id)} alt="" />
-      ) : null}
+      <Thumbnail
+        assetId={asset.id}
+        averageColor={asset.average_color}
+        thumbnailUrl={thumbnailUrl}
+        className="detail__image"
+      />
 
       <dl>
         <dt>解像度</dt>

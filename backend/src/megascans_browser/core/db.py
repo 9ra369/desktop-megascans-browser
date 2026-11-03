@@ -51,6 +51,7 @@ CREATE INDEX IF NOT EXISTS asset_categories_path_idx ON asset_categories(categor
 #: `LIKE` のエスケープに使う文字。`%` と `_` を検索語として扱えるようにする。
 _LIKE_ESCAPE = "\\"
 
+#: 一覧で返す列。fingerprintは差分検知専用なので含めない。
 _LIST_COLUMNS = (
     "id",
     "name",
@@ -58,7 +59,6 @@ _LIST_COLUMNS = (
     "rel_dir",
     "average_color",
     "resolutions",
-    "fingerprint",
 )
 
 

@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { AssetGrid } from '../src/renderer/components/AssetGrid'
@@ -63,6 +63,24 @@ describe('AssetGrid', () => {
     const image = document.querySelector('img')
     expect(image?.getAttribute('loading')).toBe('lazy')
     expect(image?.getAttribute('src')).toContain('/thumbnails/wlrvaf3?token=t')
+  })
+
+  it('falls back to a placeholder tinted with the average color', () => {
+    render(
+      <AssetGrid
+        items={[asset()]}
+        selectedId={null}
+        thumbnailUrl={thumbnailUrl}
+        onSelect={vi.fn()}
+        onOpenFolder={vi.fn()}
+      />,
+    )
+
+    fireEvent.error(document.querySelector('img') as HTMLImageElement)
+
+    const placeholder = document.querySelector('.card__placeholder')
+    expect(placeholder).not.toBeNull()
+    expect((placeholder as HTMLElement).style.background).toContain('rgb(17, 34, 51)')
   })
 
   it('says so when nothing matches', () => {
@@ -148,10 +166,8 @@ describe('CategoryPanel', () => {
 describe('DetailPanel', () => {
   const detail: AssetDetail = {
     ...asset(),
-    abs_dir: 'D:/Megascans/Downloaded/surface/Concrete Pavement_wlrvaf3',
     categories: ['surface', 'surface/concrete'],
     meta: { scanArea: '2x2 m', tiling_directions: ['x', 'y'] },
-    has_thumbnail: true,
   }
 
   it('shows the resolutions, the categories and the meta', () => {
@@ -170,7 +186,9 @@ describe('DetailPanel', () => {
     expect(screen.getByText('x, y')).toBeDefined()
   })
 
-  it('does not show a billboard row or a lod row', () => {
+  it('shows exactly the meta keys it was given', () => {
+    // Billboardの有無とLODを出さないのは、meta に入れない側（manifest.py）の責任。
+    // ここでは渡されたキー以外を足さないことを確認する。
     render(
       <DetailPanel
         asset={detail}
@@ -180,8 +198,22 @@ describe('DetailPanel', () => {
       />,
     )
 
-    expect(screen.queryByText(/Billboard/i)).toBeNull()
-    expect(screen.queryByText(/lodDistance/i)).toBeNull()
+    const terms = [...document.querySelectorAll('dt')].map((node) => node.textContent)
+    expect(terms).toEqual(['解像度', 'カテゴリ', 'フォルダ', 'scanArea', 'tiling_directions'])
+  })
+
+  it('renders a billboard key if the api ever sent one', () => {
+    // 逆向きの確認。空振りしていないことを示すため。
+    render(
+      <DetailPanel
+        asset={{ ...detail, meta: { useBillboardMaterial: true } }}
+        thumbnailUrl={thumbnailUrl}
+        onOpenFolder={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('useBillboardMaterial')).toBeDefined()
   })
 
   it('opens the folder with the relative path', () => {
@@ -200,16 +232,21 @@ describe('DetailPanel', () => {
     expect(onOpenFolder).toHaveBeenCalledWith('surface/Concrete Pavement_wlrvaf3')
   })
 
-  it('leaves out the image when there is no thumbnail', () => {
+  it('falls back to a placeholder when the thumbnail fails to load', () => {
     render(
       <DetailPanel
-        asset={{ ...detail, has_thumbnail: false }}
+        asset={detail}
         thumbnailUrl={thumbnailUrl}
         onOpenFolder={vi.fn()}
         onClose={vi.fn()}
       />,
     )
 
+    const image = document.querySelector('img')
+    expect(image).not.toBeNull()
+    fireEvent.error(image as HTMLImageElement)
+
     expect(document.querySelector('img')).toBeNull()
+    expect(screen.getByText('no preview')).toBeDefined()
   })
 })

@@ -10,8 +10,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 #: CORSで許可するオリジン。アプリの画面だけ。
-#: ``file://`` から読み込まれたレンダラーは Origin を送らないか ``null`` を送る。
+#:
+#: 本番のレンダラーは ``file://`` から読み込まれ、``Origin: null`` を送るので
+#: ``"null"`` を許可する。これが無いと本番で画面からAPIを呼べない。
+#: 残りの2つは開発時のViteのdevサーバー。
 ALLOWED_ORIGINS: tuple[str, ...] = (
+    "null",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 )

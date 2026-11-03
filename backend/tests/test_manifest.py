@@ -130,3 +130,22 @@ def test_parse_manifest_keeps_the_plain_meta_of_a_3d_asset() -> None:
 
     assert meta["length"] == "1.5m"
     assert meta["texelDensity"] == "3 px/m"
+
+
+def test_parse_manifest_does_not_keep_the_polygon_count() -> None:
+    # 設計: ポリゴン数はDBに持たない。`points` がそれ。
+    assert "points" not in parse_manifest(load_manifest("xiwcfassc")).meta
+    assert "points" not in parse_manifest(load_manifest("wfypejzha")).meta
+
+
+def test_parse_manifest_does_not_keep_submesh_splitting() -> None:
+    assert "splitSubmeshes" not in parse_manifest(load_manifest("xiwcfassc")).meta
+
+
+def test_parse_manifest_keeps_no_color_space_or_map_type() -> None:
+    # 設計: 色空間、マップ種類はDBに持たない。
+    for asset_id in ("wlrvaf3", "xiwcfassc", "wfypejzha"):
+        meta = parse_manifest(load_manifest(asset_id)).meta
+        assert not any("colorspace" in key.lower() for key in meta), asset_id
+        assert "maps" not in meta
+        assert "components" not in meta

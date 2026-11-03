@@ -27,10 +27,8 @@ export interface AssetListResponse {
 }
 
 export interface AssetDetail extends AssetListItem {
-  abs_dir: string | null
   categories: string[]
   meta: Record<string, unknown>
-  has_thumbnail: boolean
 }
 
 export interface CategoryItem {

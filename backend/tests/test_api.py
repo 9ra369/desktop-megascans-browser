@@ -63,10 +63,11 @@ def test_a_request_with_the_wrong_token_is_rejected(client: TestClient) -> None:
     assert response.status_code == 401
 
 
-def test_the_token_can_come_from_the_query(client: TestClient) -> None:
-    response = client.get("/assets", params={"token": TOKEN}, headers={"Authorization": ""})
-
-    assert response.status_code == 200
+def test_the_query_token_is_not_accepted_outside_thumbnails(client: TestClient) -> None:
+    # 設計はサムネイルURLに限ってクエリでトークンを渡すとしている。
+    for path in ("/assets", "/assets/wlrvaf3", "/categories", "/settings", "/sync/status"):
+        response = client.get(path, params={"token": TOKEN}, headers={"Authorization": ""})
+        assert response.status_code == 401, path
 
 
 def test_the_wrong_token_in_the_query_is_rejected(client: TestClient) -> None:
@@ -181,10 +182,20 @@ def test_asset_detail_carries_the_metadata(filled: TestClient) -> None:
     assert body["meta"]["scanArea"] == "2x2 m"
 
 
-def test_asset_detail_carries_the_absolute_folder(filled: TestClient, downloaded: Path) -> None:
+def test_asset_detail_does_not_carry_an_absolute_path(filled: TestClient) -> None:
+    # 設計はパスをDownloadedからの相対で持つとしている。絶対パスはメインプロセスが解決する。
     body = filled.get("/assets/wlrvaf3").json()
 
-    assert Path(body["abs_dir"]) == downloaded / "surface" / "Concrete Pavement_wlrvaf3"
+    assert "abs_dir" not in body
+    assert ":" not in body["rel_dir"]
+
+
+def test_asset_detail_does_not_carry_the_fingerprint(filled: TestClient) -> None:
+    assert "fingerprint" not in filled.get("/assets/wlrvaf3").json()
+
+
+def test_the_list_does_not_carry_the_fingerprint(filled: TestClient) -> None:
+    assert all("fingerprint" not in item for item in filled.get("/assets").json()["items"])
 
 
 def test_asset_detail_is_404_for_an_unknown_id(filled: TestClient) -> None:
@@ -264,6 +275,34 @@ def test_post_sync_while_one_runs_returns_409(filled: TestClient) -> None:
 
 
 # -------------------------------------------------------------------- CORS など
+
+
+def test_cors_allows_the_packaged_renderer(client: TestClient) -> None:
+    # 本番のレンダラーは file:// から読み込まれ、Origin: null を送る。
+    preflight = client.options(
+        "/assets",
+        headers={
+            "Origin": "null",
+            "Access-Control-Request-Method": "GET",
+            "Access-Control-Request-Headers": "authorization",
+        },
+    )
+
+    assert preflight.status_code == 200
+    assert preflight.headers.get("access-control-allow-origin") == "null"
+
+
+def test_cors_rejects_a_preflight_from_another_origin(client: TestClient) -> None:
+    preflight = client.options(
+        "/assets",
+        headers={
+            "Origin": "https://example.com",
+            "Access-Control-Request-Method": "GET",
+            "Access-Control-Request-Headers": "authorization",
+        },
+    )
+
+    assert preflight.headers.get("access-control-allow-origin") is None
 
 
 def test_cors_allows_only_the_app_origin(client: TestClient) -> None:

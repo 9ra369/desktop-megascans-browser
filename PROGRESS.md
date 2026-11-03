@@ -98,6 +98,52 @@ CLAUDE.md の実装順にそったチェックリスト。設計の正は `docs/
 | トークンなしのAPI | `/assets` が401 |
 | ウィンドウを閉じるとPythonも止まる | Electron 0プロセス、backend 0プロセス（取り残しなし） |
 
+## サブエージェントによる設計との照合（対応済み）
+
+差分を `docs/design.md` と照合して指摘された項目への対応。
+
+### 修正した要件違反
+
+| 指摘 | 対応 |
+|---|---|
+| CORSが本番の画面を許可していない。本番のレンダラーは `file://` から読まれ `Origin: null` を送るため、全API呼び出しがブロックされる（実際に再現） | `ALLOWED_ORIGINS` に `"null"` を追加。preflightが200を返すことをテストで固定 |
+| 起動失敗時にPythonが残る。`will-quit` が `connection === null` で即returnし、`bootstrap` の失敗時に `stop()` を呼んでいなかった | `bootstrap` の失敗時に `server.stop()` を呼び、`will-quit` の判定を `stopping` フラグに変更 |
+| `meta_json` に `useBillboardMaterial`（Billboardの有無）と `dimensions`（バリエーション別の寸法）が入っていた | 両方を除外（自分でも同じ問題を見つけて修正済み） |
+
+### 取り除いたスコープ外の追加
+
+| 指摘 | 対応 |
+|---|---|
+| `AssetDetail.abs_dir`：APIが絶対パスを返していた。設計はExplorer連携を `rel_dir` + IPC と定め、メインプロセスが自分で絶対パスを解決する | 削除 |
+| `AssetDetail.has_thumbnail`：設計にない項目。真偽値のためにBLOBを丸ごと読んでいた | 削除。サムネイルの有無は `<img>` の `onError` で判断する（グリッドと同じ `Thumbnail` に共通化） |
+| クエリのトークンを全エンドポイントで受理。設計はサムネイルURLに限っている | `/thumbnails/{id}` だけに限定。他は401 |
+| `search()` が `fingerprint` を返していた。設計では差分検知専用 | 一覧の列から削除 |
+| CSPのメタタグ。設計に記述がなく、`script-src 'self'` と `connect-src` がReact RefreshのインラインスクリプトとHMRのWebSocketを止めるため `npm run dev` が動かない | 削除。`npm run dev` が動くことを確認 |
+
+### 足したテスト
+
+- 本番オリジン（`Origin: null`）のCORS preflight、他オリジンの拒否
+- クエリのトークンが `/thumbnails` 以外で拒否されること
+- `abs_dir` と `fingerprint` がAPIから出ないこと
+- DBに持たないメタデータ（`points`、`splitSubmeshes`、`useBillboardMaterial`、`dimensions`、色空間、マップ種類）
+- 同じアセットを別の絶対パスに置いてもフィンガープリントが一致すること
+- `assetsData.json` と `atlas`/`brush`/`DHI` を読まないこと（読めない状態にして確認）
+- 同期後にDownloadedを丸ごと消しても検索・一覧・詳細・カテゴリ・サムネイルが答えること
+- 走行中の `POST /sync` が409を返すこと（モックなし）
+- 同期中に `/assets` と `/categories` が答えること
+- サムネイルの読み込み失敗でプレースホルダーに切り替わること（グリッドと詳細の両方）
+- 詳細パネルが渡された `meta` のキー以外を描かないこと（空振りしていたテストを置き換え）
+
+### 残した指摘と理由
+
+- **`/assets` の `limit` / `offset`**：設計のAPI表にはないが、無ければ応答が無制限になる。APIの上限2000件で打ち切る。
+- **メインプロセスの単一インスタンスロック、`setWindowOpenHandler`、`will-navigate` ガード、`sandbox: true`**：設計の役割分担には書かれていないが、2つ起動すると1つのSQLiteを2プロセスで書くことになり、残りは設計のセキュリティ節（`contextIsolation` 有効・Node.js統合無効）と同じ向き。
+- **`userData` へのログファイル**：Downloaded配下ではなく、設計の「初回同期のログで確認する」に必要。
+- **追加インデックス3件**：ER図は列の定義で、インデックスは含まない。列は追加していない。
+- **`vitest` / `@testing-library` / `jsdom`**：テストを書くために必要。
+- **メインプロセス（`index.ts`）のテストがない**：Electronのランタイムが必要なため単体テストにしていない。代わりに実際に `electron .` を起動して、Pythonの起動・`/health`・401・終了時の停止を確認した（上の「起動の確認」）。
+- **`searchStr` との一致（設計の37/37）**：`assetsData.json` を使わない方針で、フィクスチャ3件に `searchStr` が無いため検証できない。語の含有を個別に確認している。
+
 ## 判断の記録
 
 - リモートが空だったため、統合する履歴はなし。ローカルの `main` をそのまま push する。

@@ -48,10 +48,8 @@ class AssetListResponse(BaseModel):
 
 
 class AssetDetail(AssetListItem):
-    abs_dir: str | None
     categories: list[str]
     meta: dict[str, Any]
-    has_thumbnail: bool
 
 
 class CategoryItem(BaseModel):
@@ -84,12 +82,10 @@ class SyncStartedResponse(BaseModel):
     started: bool
 
 
-def _bearer_token(request: Request) -> str | None:
+def _header_token(request: Request) -> str | None:
     header = request.headers.get("Authorization", "")
     scheme, _, value = header.partition(" ")
-    if scheme.lower() == "bearer" and value:
-        return value
-    return request.query_params.get("token")
+    return value if scheme.lower() == "bearer" and value else None
 
 
 def _looks_like_downloaded(path: Path) -> bool:
@@ -125,14 +121,21 @@ def create_app(db: Database, settings: ServerSettings | None = None) -> FastAPI:
         allow_headers=["Authorization", "Content-Type"],
     )
 
-    def require_token(request: Request) -> None:
-        token = _bearer_token(request)
+    def _check(token: str | None) -> None:
         if token is None or not secrets.compare_digest(token, settings.token):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="トークンが正しくない"
             )
 
+    def require_token(request: Request) -> None:
+        _check(_header_token(request))
+
+    def require_token_allowing_query(request: Request) -> None:
+        """``<img>`` はヘッダーを付けられないので、ここだけクエリも受け取る。"""
+        _check(_header_token(request) or request.query_params.get("token"))
+
     authorized = [Depends(require_token)]
+    authorized_for_img = [Depends(require_token_allowing_query)]
 
     def downloaded_root() -> Path | None:
         stored = db.get_meta(DOWNLOADED_PATH_KEY)
@@ -191,13 +194,8 @@ def create_app(db: Database, settings: ServerSettings | None = None) -> FastAPI:
         asset = db.asset(asset_id)
         if asset is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="アセットがない")
-        root = downloaded_root()
         asset.pop("fingerprint", None)
-        return AssetDetail(
-            **asset,
-            abs_dir=str(root / asset["rel_dir"]) if root is not None else None,
-            has_thumbnail=db.thumbnail(asset_id) is not None,
-        )
+        return AssetDetail(**asset)
 
     # -------------------------------------------------------------- /categories
 
@@ -209,7 +207,7 @@ def create_app(db: Database, settings: ServerSettings | None = None) -> FastAPI:
 
     # -------------------------------------------------------------- /thumbnails
 
-    @app.get("/thumbnails/{asset_id}", dependencies=authorized)
+    @app.get("/thumbnails/{asset_id}", dependencies=authorized_for_img)
     def get_thumbnail(asset_id: str) -> Response:
         """``<img>`` から読むので、トークンはクエリでも受け取る。"""
         image = db.thumbnail(asset_id)

@@ -1,6 +1,5 @@
-import { useState } from 'react'
-
 import type { AssetListItem } from '../../shared/types'
+import { Thumbnail } from './Thumbnail'
 
 interface Props {
   items: readonly AssetListItem[]
@@ -8,39 +7,6 @@ interface Props {
   thumbnailUrl: (id: string) => string
   onSelect: (id: string) => void
   onOpenFolder: (relDir: string) => void
-}
-
-function Thumbnail({
-  asset,
-  thumbnailUrl,
-}: {
-  asset: AssetListItem
-  thumbnailUrl: (id: string) => string
-}): React.JSX.Element {
-  const [failed, setFailed] = useState(false)
-
-  if (failed) {
-    // サムネイルがなければプレースホルダー。平均色を敷いて見分けやすくする。
-    return (
-      <div
-        className="card__placeholder"
-        style={{ background: asset.average_color || 'var(--panel-2)' }}
-        aria-hidden="true"
-      >
-        no preview
-      </div>
-    )
-  }
-  return (
-    <img
-      className="card__image"
-      src={thumbnailUrl(asset.id)}
-      alt=""
-      loading="lazy"
-      decoding="async"
-      onError={() => setFailed(true)}
-    />
-  )
 }
 
 export function AssetGrid({
@@ -69,7 +35,11 @@ export function AssetGrid({
           onDoubleClick={() => onOpenFolder(asset.rel_dir)}
           title={asset.name}
         >
-          <Thumbnail asset={asset} thumbnailUrl={thumbnailUrl} />
+          <Thumbnail
+            assetId={asset.id}
+            averageColor={asset.average_color}
+            thumbnailUrl={thumbnailUrl}
+          />
           <span className="card__body">
             <span className="card__name">{asset.name}</span>
             <br />

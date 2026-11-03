@@ -17,6 +17,8 @@ const server = new PythonServer({
 
 let connection: Connection | null = null
 let window: BrowserWindow | null = null
+/** `will-quit` を一度だけ処理するための印。 */
+let stopping = false
 
 /** Explorerを開く前に、DBが持っているDownloadedの場所をAPIから取る。 */
 async function downloadedPath(): Promise<string | null> {
@@ -107,6 +109,8 @@ async function bootstrap(): Promise<void> {
   try {
     connection = await server.start()
   } catch (error) {
+    // 起動の途中で失敗しても、spawn済みのPythonは残さない。
+    await server.stop()
     dialog.showErrorBox('起動に失敗しました', String(error))
     app.quit()
     return
@@ -128,12 +132,16 @@ if (!app.requestSingleInstanceLock()) {
   })
 
   // Electronの終了時にPythonも止める。
+  //
+  // 接続が取れていなくてもspawn済みのことがあるので、`connection` では判断しない。
+  // 停止が失敗しても終了は止めない。
   app.on('will-quit', (event) => {
-    if (connection === null) {
+    if (stopping) {
       return
     }
+    stopping = true
     event.preventDefault()
     connection = null
-    void server.stop().then(() => app.quit())
+    void server.stop().finally(() => app.quit())
   })
 }

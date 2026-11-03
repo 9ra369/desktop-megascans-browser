@@ -43,3 +43,13 @@ def test_fingerprint_is_a_sha256_hex_digest() -> None:
     value = compute_fingerprint([entry("a.jpg")])
     assert len(value) == 64
     assert set(value) <= set("0123456789abcdef")
+
+
+def test_fingerprint_does_not_depend_on_the_absolute_path() -> None:
+    # 設計: 元にするのは相対パスだけ。絶対パスは除外する。
+    files = [entry("Textures/Atlas/x_4K_Albedo.jpg"), entry("x.json", size=99)]
+
+    assert compute_fingerprint(files) == compute_fingerprint(files)
+    assert compute_fingerprint(files) != compute_fingerprint(
+        [entry("D:/Megascans/Downloaded/Textures/Atlas/x_4K_Albedo.jpg"), entry("x.json", size=99)]
+    )
