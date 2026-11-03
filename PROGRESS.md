@@ -33,10 +33,10 @@ CLAUDE.md の実装順にそったチェックリスト。設計の正は `docs/
 
 ## 4. api：FastAPIのエンドポイントと認証
 
-- [ ] トークン認証、CORS、`127.0.0.1` のみ待ち受け
-- [ ] `/health` `/settings` `/assets` `/assets/{id}` `/categories` `/thumbnails/{id}` `/sync` `/sync/status`
-- [ ] 起動時にポートとトークンを標準出力へ出す
-- [ ] テスト
+- [x] トークン認証、CORS、`127.0.0.1` のみ待ち受け
+- [x] `/health` `/settings` `/assets` `/assets/{id}` `/categories` `/thumbnails/{id}` `/sync` `/sync/status`
+- [x] 起動時にポートとトークンを標準出力へ出す
+- [x] テスト
 
 ## 5. app：Electronの起動処理とPythonの起動・終了管理
 
@@ -76,6 +76,17 @@ CLAUDE.md の実装順にそったチェックリスト。設計の正は `docs/
 - `resolutions` は `", "` 区切りの文字列として1列に入れた（設計のスキーマが `TEXT`）。
 - 接続は `check_same_thread=False` で共有し、書き込みは `threading.Lock` で直列化した。
   同期がバックグラウンドスレッドで走る前提のため。
+- `/health` だけ認証なし。メインプロセスが接続を確かめる前にトークンを使えないため。
+- トークンは `Authorization: Bearer` のほか、クエリの `token` でも受け取る。`<img>` は
+  ヘッダーを付けられないという設計の記述に合わせた。比較は `secrets.compare_digest`。
+- `uvicorn` の `fd=` 渡しはWindowsで動かないため、先に `bind` したソケットを
+  `uvicorn.Server.run(sockets=[...])` へ渡す。ポートを起動前に確定させるために
+  ソケットを先に作る形は変えていない。
+- 起動の行は `MEGASCANS_BROWSER_READY {"port":..,"token":..}` の1行。メインプロセスは
+  この目印を探す。
+- `PUT /settings` は、フォルダが存在し `3d` / `3dplant` / `surface` のいずれかを含むことだけ
+  確認する。
+- `/assets` の `type` は `3d` / `3dplant` / `surface` に限る（`atlas` などは422）。
 - サムネイルの長辺は320px。グリッド1枚ぶんで、元より大きくはしない。
 - 同期ログは走査時のスキップ・規則外ファイルと、manifestの解析失敗をまとめて
   `SyncResult.log` に入れ、上限500件にした。

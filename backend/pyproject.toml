@@ -25,6 +25,7 @@ packages = ["src/megascans_browser"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["slow: 実際にサーバープロセスを起動するテスト"]
 
 [tool.ruff]
 line-length = 100
