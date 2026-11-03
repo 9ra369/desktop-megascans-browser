@@ -189,6 +189,14 @@ def test_asset_detail_does_not_carry_an_absolute_path(filled: TestClient) -> Non
     assert ":" not in body["rel_dir"]
 
 
+def test_asset_detail_carries_the_semantic_meta(filled: TestClient) -> None:
+    meta = filled.get("/assets/wfypejzha").json()["meta"]
+
+    assert meta["size"] == "0.27〜1.1 m"
+    assert meta["region"] == "Asia / Pakistan"
+    assert meta["environment"] == ["rural", "urban", "forest biome"]
+
+
 def test_asset_detail_does_not_carry_the_categories(filled: TestClient) -> None:
     # カテゴリは左のツリーで絞り込む。詳細には載せない。
     assert "categories" not in filled.get("/assets/wlrvaf3").json()

@@ -13,7 +13,7 @@ from typing import Any
 
 #: 取り出すメタデータの版。``_DROPPED_META_KEYS`` など、同じ `{id}.json` から
 #: 取り出す内容を変えたら上げる。同期が既存のDBを作り直す目印に使う。
-META_VERSION = "2"
+META_VERSION = "3"
 
 #: ``META_VERSION`` を入れる ``app_meta`` のキー。
 META_VERSION_KEY = "meta_version"
@@ -44,6 +44,14 @@ _DROPPED_META_KEYS = frozenset(
 _SEARCH_FIELDS = ("name", "id", "categories", "tags", "environment", "semanticTags")
 
 _WORD_RE = re.compile(r"[a-z0-9]+")
+
+#: `semanticTags` から足すメタデータのキー。``manifest["meta"]`` 側と衝突しない名前。
+SIZE_KEY = "size"
+REGION_KEY = "region"
+ENVIRONMENT_KEY = "environment"
+
+#: 値の無いことを表す文字列。Megascansのデータには素の ``"undefined"`` が入る。
+_UNDEFINED = "undefined"
 
 
 @dataclass(frozen=True)
@@ -118,13 +126,83 @@ def search_text_for(manifest: dict[str, Any]) -> str:
     return " ".join(sorted(words))
 
 
+def _text(value: Any) -> str | None:
+    """表示に使える文字列だけ返す。空や ``"undefined"``、他の型は ``None``。"""
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    if not text or text.lower() == _UNDEFINED:
+        return None
+    return text
+
+
+def _number(value: Any) -> str | None:
+    """寸法の数値を表示用の文字列にする。``2.0`` は ``"2"`` にする。"""
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        return None
+    return f"{value:g}"
+
+
+def _size_of(tags: dict[str, Any]) -> str | None:
+    """``minSize`` と ``maxSize`` から寸法の範囲を作る。単位はメートル。
+
+    片方しか無ければその値だけ、同じ値なら1つだけにする。
+    """
+    low = _number(tags.get("minSize"))
+    high = _number(tags.get("maxSize"))
+    if low is not None and high is not None and low != high:
+        return f"{low}〜{high} m"
+    value = low if low is not None else high
+    return None if value is None else f"{value} m"
+
+
+def _region_of(tags: dict[str, Any]) -> str | None:
+    """``region`` と ``country`` を広い方から並べる。片方だけでも返す。"""
+    parts = [text for text in (_text(tags.get("region")), _text(tags.get("country"))) if text]
+    return " / ".join(parts) or None
+
+
+def _environment_of(tags: dict[str, Any]) -> list[str] | None:
+    """``semanticTags.environment`` の一覧。
+
+    トップレベルの ``environment`` は使わない。``biome`` に文字列の ``"undefined"``
+    が入ることがあるため。
+    """
+    value = tags.get(ENVIRONMENT_KEY)
+    if isinstance(value, str):
+        value = [value]
+    if not isinstance(value, list):
+        return None
+    items = [text for text in (_text(item) for item in value) if text]
+    return items or None
+
+
+def _semantic_meta_of(manifest: dict[str, Any]) -> dict[str, Any]:
+    """``semanticTags`` から詳細パネル用の補足情報を取り出す。
+
+    値が無い項目はキーごと入れない。詳細パネルは渡されたキーだけを行にするので、
+    「不明」の行は出ない。想定外の型や空の値はその項目だけ未設定として扱う。
+    """
+    tags = manifest.get("semanticTags")
+    if not isinstance(tags, dict):
+        return {}
+    found = {
+        SIZE_KEY: _size_of(tags),
+        REGION_KEY: _region_of(tags),
+        ENVIRONMENT_KEY: _environment_of(tags),
+    }
+    return {key: value for key, value in found.items() if value is not None}
+
+
 def _meta_of(manifest: dict[str, Any]) -> dict[str, Any]:
     entries = manifest.get("meta") or []
-    return {
+    meta = {
         entry["key"]: entry["value"]
         for entry in entries
         if isinstance(entry, dict) and entry.get("key") not in _DROPPED_META_KEYS
     }
+    meta.update(_semantic_meta_of(manifest))
+    return meta
 
 
 def parse_manifest(manifest: dict[str, Any]) -> AssetMeta:
