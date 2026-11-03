@@ -14,8 +14,20 @@ from typing import Any
 #: `categories[0]` と `assetCategories` のルート名の対応。
 _CATEGORY_ROOTS = {"3D asset": "3d", "3D plant": "3dplant"}
 
-#: DBに持たないメタデータ。ポリゴン数、色空間、バリエーション、マップ種類、LOD。
-_DROPPED_META_KEYS = frozenset({"lodDistance", "points", "splitSubmeshes"})
+#: DBに持たないメタデータ。
+#:
+#: 設計の「ポリゴン数、色空間、バリエーション、マップ種類、LODはDBに持たない」と、
+#: 「詳細パネルにはBillboardの有無とLODは表示しない」に対応する。
+#: ``dimensions`` はバリエーション別の寸法なので落とす。
+_DROPPED_META_KEYS = frozenset(
+    {
+        "lodDistance",
+        "points",
+        "splitSubmeshes",
+        "useBillboardMaterial",
+        "dimensions",
+    }
+)
 
 #: `search_text` の元にするフィールド。
 _SEARCH_FIELDS = ("name", "id", "categories", "tags", "environment", "semanticTags")

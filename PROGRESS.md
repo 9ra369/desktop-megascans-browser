@@ -106,8 +106,10 @@ CLAUDE.md の実装順にそったチェックリスト。設計の正は `docs/
 - `search_text` はフィールド名を語に含めない。`semanticTags` と `environment` は値だけを辿り、
   値が入れ子の辞書（`locations` など）のときはキーを中身として扱う。`assetCategories` は
   キーが中身なのでキーを辿る。語は小文字・重複なし・ソート済みで空白区切りにした。
-- `meta_json` から `lodDistance`、`points`、`splitSubmeshes` を落とした。設計が
-  「ポリゴン数、バリエーション、LODはDBに持たない」としているため。
+- `meta_json` から `lodDistance`、`points`、`splitSubmeshes`、`useBillboardMaterial`、
+  `dimensions` を落とした。設計が「ポリゴン数、色空間、バリエーション、マップ種類、
+  LODはDBに持たない」「詳細パネルにはBillboardの有無とLODは表示しない」としているため。
+  `dimensions` はバリエーション別の寸法。結果として3dplantの `meta_json` は空になる。
 - 検索語は空白で区切り、すべてを含む行だけを返す（AND）。`%` と `_` は `ESCAPE` で
   エスケープし、検索語として扱う。
 - `resolutions` は `", "` 区切りの文字列として1列に入れた（設計のスキーマが `TEXT`）。

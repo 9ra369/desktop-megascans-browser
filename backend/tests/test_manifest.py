@@ -113,3 +113,20 @@ def test_search_text_keeps_the_keys_of_the_location_taxonomy() -> None:
 
     assert "sweden" in text
     assert "europe" in text
+
+
+def test_parse_manifest_does_not_keep_whether_a_billboard_exists() -> None:
+    # 設計: 詳細パネルにはBillboardの有無とLODは表示しない
+    assert "useBillboardMaterial" not in parse_manifest(load_manifest("wfypejzha")).meta
+
+
+def test_parse_manifest_does_not_keep_per_variation_data() -> None:
+    # 設計: バリエーションはDBに持たない。`dimensions` はバリエーション別の寸法。
+    assert "dimensions" not in parse_manifest(load_manifest("wfypejzha")).meta
+
+
+def test_parse_manifest_keeps_the_plain_meta_of_a_3d_asset() -> None:
+    meta = parse_manifest(load_manifest("xiwcfassc")).meta
+
+    assert meta["length"] == "1.5m"
+    assert meta["texelDensity"] == "3 px/m"
