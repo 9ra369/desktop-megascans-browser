@@ -111,12 +111,12 @@ export class PythonServer {
   private waitForReady(child: ChildProcess): Promise<Connection> {
     return new Promise((resolve, reject) => {
       if (child.stdout === null) {
-        reject(new Error('Pythonの標準出力を読めない'))
+        reject(new Error('Cannot read the server output'))
         return
       }
       const lines = readline.createInterface({ input: child.stdout })
       const timer = setTimeout(() => {
-        finish(new Error('Pythonサーバーの起動が時間内に終わらなかった'))
+        finish(new Error('The local server did not start in time'))
       }, READY_TIMEOUT_MS)
 
       const finish = (error: Error | null, connection?: Connection): void => {
@@ -131,10 +131,10 @@ export class PythonServer {
         }
       }
       const onExit = (code: number | null): void => {
-        finish(new Error(`Pythonサーバーが起動前に終了した (code ${String(code)})`))
+        finish(new Error(`The local server exited before it was ready (code ${String(code)})`))
       }
       const onError = (error: Error): void => {
-        finish(new Error(`Pythonサーバーを起動できなかった: ${error.message}`))
+        finish(new Error(`Could not launch the local server: ${error.message}`))
       }
 
       lines.on('line', (line) => {
@@ -159,13 +159,13 @@ export class PythonServer {
         if (response.ok) {
           return
         }
-        lastError = new Error(`/health が ${String(response.status)} を返した`)
+        lastError = new Error(`/health returned ${String(response.status)}`)
       } catch (error) {
         lastError = error
       }
       await new Promise((resolve) => setTimeout(resolve, 200))
     }
-    throw new Error(`Pythonサーバーの起動を確認できなかった: ${String(lastError)}`)
+    throw new Error(`Could not confirm the local server started: ${String(lastError)}`)
   }
 
   /** Electronの終了時に呼ぶ。 */

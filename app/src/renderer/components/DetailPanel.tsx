@@ -25,7 +25,7 @@ export function DetailPanel({
   onClose,
 }: Props): React.JSX.Element {
   return (
-    <aside className="detail" aria-label="詳細">
+    <aside className="detail" aria-label="Details">
       <h2 className="detail__name">{asset.name}</h2>
       <p className="muted">
         {asset.type} · {asset.id}
@@ -38,11 +38,11 @@ export function DetailPanel({
       />
 
       <dl>
-        <dt>解像度</dt>
+        <dt>Resolutions</dt>
         <dd>{asset.resolutions.length > 0 ? asset.resolutions.join(', ') : '—'}</dd>
-        <dt>カテゴリ</dt>
+        <dt>Categories</dt>
         <dd>{asset.categories.join(' / ') || '—'}</dd>
-        <dt>フォルダ</dt>
+        <dt>Folder</dt>
         <dd>{asset.rel_dir}</dd>
         {Object.entries(asset.meta).map(([key, value]) => (
           <div key={key} style={{ display: 'contents' }}>
@@ -54,10 +54,10 @@ export function DetailPanel({
 
       <div style={{ display: 'flex', gap: 8 }}>
         <button type="button" onClick={() => onOpenFolder(asset.rel_dir)}>
-          フォルダを開く
+          Open folder
         </button>
         <button type="button" onClick={onClose}>
-          閉じる
+          Close
         </button>
       </div>
     </aside>

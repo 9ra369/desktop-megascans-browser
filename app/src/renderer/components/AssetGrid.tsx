@@ -19,7 +19,7 @@ export function AssetGrid({
   if (items.length === 0) {
     return (
       <div className="grid">
-        <p className="muted">該当するアセットがありません。</p>
+        <p className="muted">No assets match.</p>
       </div>
     )
   }

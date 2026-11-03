@@ -165,7 +165,7 @@ export function App(): React.JSX.Element {
   if (phase === 'connecting') {
     return (
       <div className="center">
-        <p className="muted">Pythonサーバーに接続中…</p>
+        <p className="muted">Connecting to the local server…</p>
       </div>
     )
   }
@@ -174,7 +174,7 @@ export function App(): React.JSX.Element {
     return (
       <div className="center">
         <div className="setup">
-          <h1>起動できませんでした</h1>
+          <h1>Could not start</h1>
           <p className="error">{fatal}</p>
         </div>
       </div>
@@ -203,17 +203,17 @@ export function App(): React.JSX.Element {
         <input
           className="toolbar__search"
           type="search"
-          placeholder="名前、タグ、カテゴリで検索"
+          placeholder="Search by name, tag or category"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          aria-label="検索"
+          aria-label="Search"
         />
         <select
           value={assetType}
           onChange={(event) => setAssetType(event.target.value)}
-          aria-label="タイプ"
+          aria-label="Type"
         >
-          <option value="">すべてのタイプ</option>
+          <option value="">All types</option>
           {ASSET_TYPES.map((type) => (
             <option key={type} value={type}>
               {type}
@@ -221,7 +221,7 @@ export function App(): React.JSX.Element {
           ))}
         </select>
         <button type="button" onClick={() => void startSync()} disabled={sync?.running === true}>
-          再スキャン
+          Rescan
         </button>
         <span className="toolbar__status">{syncLabel(sync, total)}</span>
       </header>
@@ -237,7 +237,7 @@ export function App(): React.JSX.Element {
           {listError === null ? null : <p className="error" style={{ margin: '8px 14px' }}>{listError}</p>}
           {sync?.state === 'error' && sync.error !== null ? (
             <p className="error" style={{ margin: '8px 14px' }}>
-              同期に失敗しました: {sync.error}
+              Sync failed: {sync.error}
             </p>
           ) : null}
           <AssetGrid

@@ -37,16 +37,16 @@ export function SetupScreen({ initialPath, onSave }: Props): React.JSX.Element {
       <div className="setup">
         <h1>Megascans Browser</h1>
         <p className="muted">
-          Bridgeの <code>Downloaded</code> フォルダを選んでください。
-          <code>3d</code>、<code>3dplant</code>、<code>surface</code> が入っているフォルダです。
+          Choose the <code>Downloaded</code> folder from Bridge — the one that contains{' '}
+          <code>3d</code>, <code>3dplant</code> and <code>surface</code>.
         </p>
-        <div className="setup__path">{path === '' ? <span className="muted">未選択</span> : path}</div>
+        <div className="setup__path">{path === '' ? <span className="muted">Not selected</span> : path}</div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button type="button" onClick={() => void choose()}>
-            フォルダを選ぶ
+            Choose folder
           </button>
           <button type="button" onClick={() => void save()} disabled={path === '' || saving}>
-            {saving ? '保存中…' : '保存して始める'}
+            {saving ? 'Saving…' : 'Save and start'}
           </button>
         </div>
         {error === null ? null : <p className="error">{error}</p>}

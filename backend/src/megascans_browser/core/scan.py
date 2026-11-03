@@ -111,7 +111,7 @@ def scan_downloaded(downloaded: Path | str) -> ScanResult:
     """``Downloaded`` を2階層走査して、ダウンロード済みのアセットを返す。"""
     root = Path(downloaded)
     if not root.is_dir():
-        raise FileNotFoundError(f"Downloadedが見つからない: {root}")
+        raise FileNotFoundError(f"Downloaded folder not found: {root}")
 
     result = ScanResult()
     for asset_type in ASSET_TYPES:

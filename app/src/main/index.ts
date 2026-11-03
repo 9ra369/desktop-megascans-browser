@@ -1,7 +1,8 @@
-import { BrowserWindow, app, dialog, ipcMain, shell } from 'electron'
+import { BrowserWindow, Menu, app, dialog, ipcMain, shell } from 'electron'
 
 import type { AppSettings, Connection } from '../shared/types'
 import { resolveInsideDownloaded } from './downloadedPath'
+import { buildMenuTemplate } from './menu'
 import { resolveAppPaths } from './paths'
 import { PythonServer, baseUrl } from './pythonServer'
 
@@ -78,14 +79,14 @@ function createWindow(): BrowserWindow {
 function registerIpc(): void {
   ipcMain.handle('desktop:getConnection', (): Connection => {
     if (connection === null) {
-      throw new Error('Pythonサーバーが起動していない')
+      throw new Error('The local server is not running')
     }
     return connection
   })
 
   ipcMain.handle('desktop:chooseDownloadedFolder', async (): Promise<string | null> => {
     const result = await dialog.showOpenDialog({
-      title: 'Megascans の Downloaded フォルダを選ぶ',
+      title: 'Choose the Megascans Downloaded folder',
       properties: ['openDirectory'],
     })
     return result.canceled ? null : (result.filePaths[0] ?? null)
@@ -105,13 +106,14 @@ function registerIpc(): void {
 }
 
 async function bootstrap(): Promise<void> {
+  Menu.setApplicationMenu(Menu.buildFromTemplate(buildMenuTemplate()))
   registerIpc()
   try {
     connection = await server.start()
   } catch (error) {
     // 起動の途中で失敗しても、spawn済みのPythonは残さない。
     await server.stop()
-    dialog.showErrorBox('起動に失敗しました', String(error))
+    dialog.showErrorBox('Failed to start', String(error))
     app.quit()
     return
   }

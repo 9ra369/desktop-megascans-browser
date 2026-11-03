@@ -123,9 +123,7 @@ def create_app(db: Database, settings: ServerSettings | None = None) -> FastAPI:
 
     def _check(token: str | None) -> None:
         if token is None or not secrets.compare_digest(token, settings.token):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="トークンが正しくない"
-            )
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
     def require_token(request: Request) -> None:
         _check(_header_token(request))
@@ -159,13 +157,11 @@ def create_app(db: Database, settings: ServerSettings | None = None) -> FastAPI:
     def put_settings(body: SettingsBody) -> SettingsResponse:
         path = Path(body.downloaded_path)
         if not path.is_dir():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="フォルダが見つからない"
-            )
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Folder not found")
         if not _looks_like_downloaded(path):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="3d / 3dplant / surface のいずれも見つからない",
+                detail="No 3d, 3dplant or surface folder inside",
             )
         db.set_meta(DOWNLOADED_PATH_KEY, str(path))
         return SettingsResponse(downloaded_path=str(path), configured=True)
@@ -193,7 +189,7 @@ def create_app(db: Database, settings: ServerSettings | None = None) -> FastAPI:
     def get_asset(asset_id: str) -> AssetDetail:
         asset = db.asset(asset_id)
         if asset is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="アセットがない")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Asset not found")
         asset.pop("fingerprint", None)
         return AssetDetail(**asset)
 
@@ -212,7 +208,7 @@ def create_app(db: Database, settings: ServerSettings | None = None) -> FastAPI:
         """``<img>`` から読むので、トークンはクエリでも受け取る。"""
         image = db.thumbnail(asset_id)
         if image is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="サムネイルがない")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Thumbnail not found")
         return Response(
             content=image,
             media_type="image/png",
@@ -227,10 +223,13 @@ def create_app(db: Database, settings: ServerSettings | None = None) -> FastAPI:
         root = downloaded_root()
         if root is None:
             raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT, detail="Downloadedの場所が未設定"
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The Downloaded folder is not configured",
             )
         if not sync.start(root):
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="同期中")
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT, detail="A sync is already running"
+            )
         return SyncStartedResponse(started=True)
 
     @app.get("/sync/status", dependencies=authorized)

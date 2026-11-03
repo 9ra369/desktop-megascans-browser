@@ -322,3 +322,31 @@ def test_server_settings_generate_a_token() -> None:
 
 def test_server_settings_listen_on_loopback_only() -> None:
     assert ServerSettings().host == "127.0.0.1"
+
+
+def test_the_error_details_shown_in_the_ui_are_english(client: TestClient, tmp_path: Path) -> None:
+    """画面に出る `detail` は英語（ASCII）にする。"""
+    responses = [
+        client.get("/assets", headers={"Authorization": ""}),
+        client.put("/settings", json={"downloaded_path": str(tmp_path / "missing")}),
+        client.get("/assets/nope"),
+        client.get("/thumbnails/nope"),
+        client.post("/sync"),
+    ]
+
+    for response in responses:
+        detail = response.json()["detail"]
+        assert detail.isascii(), detail
+        assert detail
+
+
+def test_put_settings_rejects_a_folder_without_an_asset_type_in_english(
+    client: TestClient, tmp_path: Path
+) -> None:
+    empty = tmp_path / "NotDownloaded"
+    empty.mkdir()
+
+    detail = client.put("/settings", json={"downloaded_path": str(empty)}).json()["detail"]
+
+    assert detail.isascii()
+    assert "3d" in detail

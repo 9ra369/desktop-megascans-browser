@@ -40,14 +40,14 @@ function Row({
 export function CategoryPanel({ items, total, selected, onSelect }: Props): React.JSX.Element {
   const tree = buildCategoryTree(items)
   return (
-    <nav className="categories" aria-label="カテゴリ">
+    <nav className="categories" aria-label="Categories">
       <button
         type="button"
         className={`categories__item${selected === null ? ' categories__item--active' : ''}`}
         onClick={() => onSelect(null)}
         aria-pressed={selected === null}
       >
-        <span className="categories__name">すべて</span>
+        <span className="categories__name">All</span>
         <span className="categories__count">{total}</span>
       </button>
       {tree.map((node) => (

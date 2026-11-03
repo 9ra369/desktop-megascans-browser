@@ -94,7 +94,7 @@ describe('AssetGrid', () => {
       />,
     )
 
-    expect(screen.getByText('該当するアセットがありません。')).toBeDefined()
+    expect(screen.getByText('No assets match.')).toBeDefined()
   })
 
   it('reports a click and a double click', () => {
@@ -130,7 +130,7 @@ describe('CategoryPanel', () => {
       />,
     )
 
-    expect(screen.getByText('すべて')).toBeDefined()
+    expect(screen.getByText('All')).toBeDefined()
     expect(screen.getByText('37')).toBeDefined()
     expect(screen.getByText('surface')).toBeDefined()
     expect(screen.getByText('concrete')).toBeDefined()
@@ -199,7 +199,7 @@ describe('DetailPanel', () => {
     )
 
     const terms = [...document.querySelectorAll('dt')].map((node) => node.textContent)
-    expect(terms).toEqual(['解像度', 'カテゴリ', 'フォルダ', 'scanArea', 'tiling_directions'])
+    expect(terms).toEqual(['Resolutions', 'Categories', 'Folder', 'scanArea', 'tiling_directions'])
   })
 
   it('renders a billboard key if the api ever sent one', () => {
@@ -227,7 +227,7 @@ describe('DetailPanel', () => {
       />,
     )
 
-    screen.getByText('フォルダを開く').click()
+    screen.getByText('Open folder').click()
 
     expect(onOpenFolder).toHaveBeenCalledWith('surface/Concrete Pavement_wlrvaf3')
   })
