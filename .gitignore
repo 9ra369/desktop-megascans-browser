@@ -22,3 +22,6 @@ build/
 # OS
 Thumbs.db
 desktop.ini
+
+# Electron
+app/dist/

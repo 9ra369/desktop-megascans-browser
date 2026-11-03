@@ -40,13 +40,15 @@ CLAUDE.md の実装順にそったチェックリスト。設計の正は `docs/
 
 ## 5. app：Electronの起動処理とPythonの起動・終了管理
 
-- [ ] メインプロセス：Pythonの起動・終了、ウィンドウ、Explorerを開く、Downloaded選択ダイアログ
-- [ ] preload：`contextBridge` で許可した操作だけ公開
-- [ ] Explorerを開くときのDownloaded配下チェック
+- [x] メインプロセス：Pythonの起動・終了、ウィンドウ、Explorerを開く、Downloaded選択ダイアログ
+- [x] preload：`contextBridge` で許可した操作だけ公開
+- [x] Explorerを開くときのDownloaded配下チェック
+- [x] テスト（起動の行の解析、パス判定、実際にbackendを起動する結合テスト）
 
 ## 6. app：React画面
 
-- [ ] グリッド、検索、カテゴリ、詳細、初回設定
+- [x] グリッド、検索、カテゴリ、詳細、初回設定
+- [x] テスト（APIクライアント、カテゴリツリー、同期ラベル、各コンポーネント）
 
 ## 7. 実際のDownloadedで初回同期を実行し、ログを確認する
 
@@ -76,6 +78,15 @@ CLAUDE.md の実装順にそったチェックリスト。設計の正は `docs/
 - `resolutions` は `", "` 区切りの文字列として1列に入れた（設計のスキーマが `TEXT`）。
 - 接続は `check_same_thread=False` で共有し、書き込みは `threading.Lock` で直列化した。
   同期がバックグラウンドスレッドで走る前提のため。
+- Vite + `tsc` の2本立てにした。レンダラーはVite、メインとpreloadは `tsc` で
+  CommonJSへ出す。`electron-vite` のような追加の枠組みは入れていない。
+- テストランナーは `vitest`（設計のスタック表にはないが、テストを書くために必要）。
+  Reactのコンポーネントは `@testing-library/react` で確認する。
+- Pythonは `backend/.venv` のPythonを直に起動する。`uv run` を挟むとPythonが孫
+  プロセスになり、Electronの終了時に取り残された（実測で確認）。`.venv` がなければ
+  `uv run` に落とす。
+- Windowsでは `.venv/Scripts/python.exe` 自体が本体のインタプリタを子として起動する
+  ため、終了は `taskkill /T /F` でプロセスツリーごと止める。
 - `/health` だけ認証なし。メインプロセスが接続を確かめる前にトークンを使えないため。
 - トークンは `Authorization: Bearer` のほか、クエリの `token` でも受け取る。`<img>` は
   ヘッダーを付けられないという設計の記述に合わせた。比較は `secrets.compare_digest`。
