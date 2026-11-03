@@ -77,10 +77,10 @@ CLAUDE.md の実装順にそったチェックリスト。設計の正は `docs/
 
 ## 最終検証
 
-- [x] `uv run pytest`：182 passed
+- [x] `uv run pytest`：208 passed
 - [x] `uv run ruff check .`：All checks passed!
-- [x] `uv run ruff format --check .`：28 files already formatted
-- [x] `npm test`（app）：55 passed
+- [x] `uv run ruff format --check .`：29 files already formatted
+- [x] `npm test`（app）：58 passed
 - [x] `npm run typecheck`（app）：エラーなし（renderer / main / tests の3プロジェクト）
 - [x] `npm run build`（app）：renderer と main のビルド成功
 - [x] 実際にElectronを起動して一連の動作を確認（下の「起動の確認」）
@@ -197,4 +197,12 @@ CLAUDE.md の実装順にそったチェックリスト。設計の正は `docs/
 
 ## 未解決
 
-- 実機の `Downloaded` のパスが不明なため、実装順7（実際のDownloadedでの初回同期）は人間の対応待ち。代わりに一時フォルダへ実物相当の構成を作って同期を検証する。
+残っているのは1件だけで、人間の対応待ち。
+
+- **実機の `Downloaded` での初回同期（実装順7）**：パスが不明。`C:` `D:` `E:` を探したが
+  Megascansのライブラリは見つからなかった。質問しない方針のため未実施。
+  代わりに実物のカタログ3件（計449ファイル）から同等の構成を作って検証した
+  （「代替検証の結果」）。実機で確認するには、アプリを起動して `Downloaded` を選び、
+  初回同期後に `userData/megascans-browser.log` と画面の同期表示を見る。
+
+認証情報が必要な項目はなし。`origin` へのpushはすべて成功している。
